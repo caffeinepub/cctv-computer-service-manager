@@ -1,0 +1,1004 @@
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ArrowLeft,
+  Bell,
+  Camera,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  ClipboardList,
+  Cpu,
+  Loader2,
+  LogIn,
+  LogOut,
+  Search,
+  Send,
+  Shield,
+  UserPlus,
+  Users,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { ServiceType, Status } from "../backend.d";
+import type { Customer, ServiceRequest } from "../backend.d";
+import {
+  useAddCustomer,
+  useAllServiceRequests,
+  useCustomers,
+  useNewRequestsCount,
+  useReplyToServiceRequest,
+  useUpdateServiceRequestStatus,
+} from "../hooks/useQueries";
+import { ServiceTypeBadge, StatusBadge } from "./StatusBadge";
+
+interface AdminDashboardProps {
+  onBack: () => void;
+}
+
+type FilterStatus = "all" | Status;
+type FilterService = "all" | ServiceType;
+type AdminSection = "requests" | "customers";
+
+function formatDate(nanoTimestamp: bigint): string {
+  const ms = Number(nanoTimestamp) / 1_000_000;
+  return new Date(ms).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const ADMIN_USERNAME = "kalaiinfotech";
+const ADMIN_PASSWORD = "kalai@2024";
+
+export default function AdminDashboard({ onBack }: AdminDashboardProps) {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { data: newCount } = useNewRequestsCount();
+  const notificationCount = newCount ? Number(newCount) : 0;
+
+  if (!isLoggedIn) {
+    return (
+      <LoginView onBack={onBack} onLoginSuccess={() => setIsLoggedIn(true)} />
+    );
+  }
+
+  return (
+    <AdminView
+      onBack={onBack}
+      onLogout={() => setIsLoggedIn(false)}
+      notificationCount={notificationCount}
+    />
+  );
+}
+
+function LoginView({
+  onBack,
+  onLoginSuccess,
+}: {
+  onBack: () => void;
+  onLoginSuccess: () => void;
+}) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+    // Simulate a brief loading state
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      onLoginSuccess();
+    } else {
+      setError("Invalid username or password");
+    }
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 border-b border-border/60 bg-card/90 backdrop-blur-sm">
+        <div className="container mx-auto px-4 h-14 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-border" />
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-primary" />
+            <span className="font-display font-semibold text-base">
+              Admin Login
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-16 max-w-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-border bg-card p-8 shadow-card"
+        >
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
+            style={{
+              background: "oklch(0.92 0.06 220 / 0.6)",
+              border: "1px solid oklch(0.8 0.1 220)",
+            }}
+          >
+            <Shield
+              className="w-7 h-7"
+              style={{ color: "oklch(0.45 0.15 220)" }}
+            />
+          </div>
+          <h1 className="font-display font-bold text-2xl text-foreground mb-2 text-center">
+            Admin Access
+          </h1>
+          <p className="text-sm text-muted-foreground mb-6 leading-relaxed text-center">
+            Enter your credentials to access the admin dashboard.
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="admin-username" className="text-sm font-medium">
+                Username
+              </Label>
+              <Input
+                id="admin-username"
+                type="text"
+                placeholder="Enter username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+                data-ocid="admin.username_input"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="admin-password" className="text-sm font-medium">
+                Password
+              </Label>
+              <Input
+                id="admin-password"
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                data-ocid="admin.password_input"
+              />
+            </div>
+
+            {error && (
+              <p
+                className="text-sm text-destructive font-medium"
+                data-ocid="admin.error_state"
+              >
+                {error}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full gap-2 font-semibold"
+              disabled={isSubmitting}
+              data-ocid="admin.login_submit_button"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Logging in...
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4" />
+                  Admin Login
+                </>
+              )}
+            </Button>
+          </form>
+        </motion.div>
+      </main>
+    </div>
+  );
+}
+
+function AdminView({
+  onBack,
+  onLogout,
+  notificationCount,
+}: {
+  onBack: () => void;
+  onLogout: () => void;
+  notificationCount: number;
+}) {
+  const [section, setSection] = useState<AdminSection>("requests");
+
+  return (
+    <div
+      className="min-h-screen bg-background"
+      data-ocid="admin.dashboard_section"
+    >
+      {/* Header */}
+      <header className="sticky top-0 z-10 border-b border-border/60 bg-card/90 backdrop-blur-sm">
+        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div className="w-px h-5 bg-border" />
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-primary" />
+              <span className="font-display font-semibold text-base">
+                Admin Dashboard
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Notification badge */}
+            <div className="relative" data-ocid="admin.notification_badge">
+              <Bell className="w-5 h-5 text-muted-foreground" />
+              {notificationCount > 0 && (
+                <span
+                  className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1"
+                  style={{ background: "oklch(0.55 0.22 25)" }}
+                >
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onLogout}
+              className="gap-1.5 text-muted-foreground hover:text-foreground h-8"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-xs">Logout</span>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Nav tabs */}
+      <div className="border-b border-border/50 bg-card/50">
+        <div className="container mx-auto px-4">
+          <div className="flex gap-0">
+            <button
+              type="button"
+              onClick={() => setSection("requests")}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                section === "requests"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              data-ocid="admin.filter.tab"
+            >
+              <ClipboardList className="w-4 h-4" />
+              Service Requests
+            </button>
+            <button
+              type="button"
+              onClick={() => setSection("customers")}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                section === "customers"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              data-ocid="admin.filter.tab"
+            >
+              <Users className="w-4 h-4" />
+              Customers
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <main className="container mx-auto px-4 py-6">
+        <AnimatePresence mode="wait">
+          {section === "requests" ? (
+            <motion.div
+              key="requests"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <RequestsSection />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="customers"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <CustomersSection />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+}
+
+function RequestsSection() {
+  const { data: requests, isLoading } = useAllServiceRequests();
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
+  const [serviceFilter, setServiceFilter] = useState<FilterService>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedId, setExpandedId] = useState<bigint | null>(null);
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [selectedStatus, setSelectedStatus] = useState<Record<string, Status>>(
+    {},
+  );
+
+  const replyMutation = useReplyToServiceRequest();
+  const statusMutation = useUpdateServiceRequestStatus();
+
+  const filtered = (requests ?? []).filter((r) => {
+    if (statusFilter !== "all" && r.status !== statusFilter) return false;
+    if (serviceFilter !== "all" && r.serviceType !== serviceFilter)
+      return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (
+        !r.customerName.toLowerCase().includes(q) &&
+        !r.phone.includes(q) &&
+        !r.problemDescription.toLowerCase().includes(q)
+      )
+        return false;
+    }
+    return true;
+  });
+
+  // Sort: unread first, then by date desc
+  const sorted = [...filtered].sort((a, b) => {
+    if (!a.isRead && b.isRead) return -1;
+    if (a.isRead && !b.isRead) return 1;
+    return Number(b.submittedAt - a.submittedAt);
+  });
+
+  const handleSendReply = async (req: ServiceRequest) => {
+    const key = req.requestId.toString();
+    const reply = replyText[key]?.trim();
+    if (!reply) {
+      toast.error("Please enter a reply message");
+      return;
+    }
+    try {
+      await replyMutation.mutateAsync({ requestId: req.requestId, reply });
+      toast.success("Reply sent successfully!");
+      setReplyText((prev) => ({ ...prev, [key]: "" }));
+    } catch {
+      toast.error("Failed to send reply");
+    }
+  };
+
+  const handleStatusChange = async (req: ServiceRequest, status: Status) => {
+    const key = req.requestId.toString();
+    setSelectedStatus((prev) => ({ ...prev, [key]: status }));
+    try {
+      await statusMutation.mutateAsync({ requestId: req.requestId, status });
+      toast.success("Status updated");
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div
+        className="flex items-center justify-center py-16"
+        data-ocid="admin.loading_state"
+      >
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Loading service requests...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, phone, or issue..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 h-9"
+            data-ocid="admin.search_input"
+          />
+        </div>
+        <Select
+          value={serviceFilter}
+          onValueChange={(v) => setServiceFilter(v as FilterService)}
+        >
+          <SelectTrigger
+            className="h-9 w-full sm:w-36"
+            data-ocid="admin.request.status_select"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Services</SelectItem>
+            <SelectItem value={ServiceType.cctv}>CCTV</SelectItem>
+            <SelectItem value={ServiceType.computer}>Computer</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Status filter tabs */}
+      <Tabs
+        value={statusFilter}
+        onValueChange={(v) => setStatusFilter(v as FilterStatus)}
+        className="mb-4"
+      >
+        <TabsList className="h-9 gap-1">
+          <TabsTrigger
+            value="all"
+            className="text-xs px-3 h-7"
+            data-ocid="admin.filter.tab"
+          >
+            All ({(requests ?? []).length})
+          </TabsTrigger>
+          <TabsTrigger
+            value={Status.pending}
+            className="text-xs px-3 h-7"
+            data-ocid="admin.filter.tab"
+          >
+            Pending (
+            {(requests ?? []).filter((r) => r.status === Status.pending).length}
+            )
+          </TabsTrigger>
+          <TabsTrigger
+            value={Status.inProgress}
+            className="text-xs px-3 h-7"
+            data-ocid="admin.filter.tab"
+          >
+            In Progress (
+            {
+              (requests ?? []).filter((r) => r.status === Status.inProgress)
+                .length
+            }
+            )
+          </TabsTrigger>
+          <TabsTrigger
+            value={Status.completed}
+            className="text-xs px-3 h-7"
+            data-ocid="admin.filter.tab"
+          >
+            Completed (
+            {
+              (requests ?? []).filter((r) => r.status === Status.completed)
+                .length
+            }
+            )
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Requests table/list */}
+      {sorted.length === 0 ? (
+        <div
+          className="rounded-xl border border-border bg-card py-12 text-center"
+          data-ocid="admin.requests_table"
+        >
+          <p
+            className="text-muted-foreground text-sm"
+            data-ocid="admin.empty_state"
+          >
+            No requests match the current filters.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3" data-ocid="admin.requests_table">
+          {sorted.map((req, idx) => {
+            const key = req.requestId.toString();
+            const isExpanded = expandedId === req.requestId;
+            const currentStatus = selectedStatus[key] ?? req.status;
+            const currentReply = replyText[key] ?? "";
+
+            return (
+              <motion.div
+                key={key}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.04 }}
+                className="rounded-xl border bg-card shadow-xs overflow-hidden"
+                style={{
+                  borderColor: !req.isRead ? "oklch(0.75 0.1 220)" : undefined,
+                }}
+                data-ocid={`admin.request.item.${idx + 1}`}
+              >
+                {/* Row header */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpandedId(isExpanded ? null : req.requestId)
+                  }
+                  className="w-full p-4 text-left hover:bg-accent/20 transition-colors"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                      <ServiceTypeBadge serviceType={req.serviceType} />
+                      <StatusBadge status={req.status} />
+                      {!req.isRead && (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                          style={{
+                            background: "oklch(0.62 0.17 220 / 0.12)",
+                            color: "oklch(0.45 0.15 220)",
+                            border: "1px solid oklch(0.75 0.1 220)",
+                          }}
+                        >
+                          NEW
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-sm font-semibold text-foreground">
+                        {req.customerName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {req.phone}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0 hidden sm:block">
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(req.submittedAt)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">#{key}</p>
+                    </div>
+                    <div className="text-muted-foreground">
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2 truncate">
+                    {req.problemDescription}
+                  </p>
+                </button>
+
+                {/* Expanded detail panel */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-4 border-t border-border/50 space-y-4">
+                        {/* Full details */}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">
+                              Customer
+                            </p>
+                            <p className="font-medium">{req.customerName}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">
+                              Phone
+                            </p>
+                            <p className="font-medium">{req.phone}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">
+                              Submitted
+                            </p>
+                            <p className="font-medium">
+                              {formatDate(req.submittedAt)}
+                            </p>
+                          </div>
+                          {req.repliedAt && (
+                            <div>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">
+                                Replied
+                              </p>
+                              <p className="font-medium">
+                                {formatDate(req.repliedAt)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+                            Problem
+                          </p>
+                          <p className="text-sm bg-muted/40 rounded-lg p-3 leading-relaxed">
+                            {req.problemDescription}
+                          </p>
+                        </div>
+
+                        {/* Status update */}
+                        <div className="flex items-center gap-3">
+                          <Label className="text-sm font-medium text-nowrap">
+                            Update Status:
+                          </Label>
+                          <Select
+                            value={currentStatus}
+                            onValueChange={(v) =>
+                              handleStatusChange(req, v as Status)
+                            }
+                          >
+                            <SelectTrigger
+                              className="h-8 w-40"
+                              data-ocid="admin.request.status_select"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={Status.pending}>
+                                Pending
+                              </SelectItem>
+                              <SelectItem value={Status.inProgress}>
+                                In Progress
+                              </SelectItem>
+                              <SelectItem value={Status.completed}>
+                                Completed
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {statusMutation.isPending && (
+                            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
+
+                        {/* Existing reply */}
+                        {req.adminReply && (
+                          <div
+                            className="rounded-lg p-3"
+                            style={{
+                              background: "oklch(0.92 0.06 148 / 0.3)",
+                              border: "1px solid oklch(0.78 0.1 148)",
+                            }}
+                          >
+                            <p
+                              className="text-xs font-semibold uppercase tracking-wider mb-1"
+                              style={{ color: "oklch(0.4 0.13 148)" }}
+                            >
+                              Your Previous Reply
+                            </p>
+                            <p className="text-sm text-foreground">
+                              {req.adminReply}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Reply area */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            {req.adminReply
+                              ? "Update Reply"
+                              : "Send Reply to Customer"}
+                          </Label>
+                          <Textarea
+                            placeholder="Type your reply to the customer..."
+                            value={currentReply}
+                            onChange={(e) =>
+                              setReplyText((prev) => ({
+                                ...prev,
+                                [key]: e.target.value,
+                              }))
+                            }
+                            rows={3}
+                            className="resize-none"
+                            data-ocid="admin.request.reply_textarea"
+                          />
+                          <Button
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => handleSendReply(req)}
+                            disabled={replyMutation.isPending}
+                            data-ocid="admin.request.reply_button"
+                          >
+                            {replyMutation.isPending ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-3.5 h-3.5" />
+                                {req.adminReply ? "Update Reply" : "Send Reply"}
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CustomersSection() {
+  const { data: customers, isLoading } = useCustomers();
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filtered = (customers ?? []).filter((c) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.phone.includes(q) ||
+      c.address.toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="font-display font-bold text-lg text-foreground">
+            Customers ({(customers ?? []).length})
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Manage registered customers
+          </p>
+        </div>
+        <Button
+          size="sm"
+          className="gap-2"
+          onClick={() => setShowAddDialog(true)}
+          data-ocid="admin.add_customer_button"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          Add Customer
+        </Button>
+      </div>
+
+      <div className="relative mb-4">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search customers..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-8 h-9"
+          data-ocid="admin.search_input"
+        />
+      </div>
+
+      {isLoading ? (
+        <div
+          className="flex items-center justify-center py-12"
+          data-ocid="admin.loading_state"
+        >
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span className="text-sm">Loading customers...</span>
+          </div>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div
+          className="rounded-xl border border-border bg-card py-12 text-center"
+          data-ocid="admin.empty_state"
+        >
+          <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">
+            {searchQuery
+              ? "No customers match your search."
+              : "No customers registered yet."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filtered.map((customer, idx) => (
+            <CustomerCard key={customer.phone} customer={customer} idx={idx} />
+          ))}
+        </div>
+      )}
+
+      <AddCustomerDialog
+        open={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+      />
+    </div>
+  );
+}
+
+function CustomerCard({ customer, idx }: { customer: Customer; idx: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.04 }}
+      className="rounded-xl border border-border bg-card p-4 shadow-xs"
+      data-ocid={`admin.request.item.${idx + 1}`}
+    >
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div>
+          <p className="font-semibold text-sm text-foreground">
+            {customer.name}
+          </p>
+          <p className="text-xs text-muted-foreground">{customer.phone}</p>
+        </div>
+        <ServiceTypeBadge serviceType={customer.serviceType} />
+      </div>
+      {customer.address && (
+        <p className="text-xs text-muted-foreground truncate">
+          {customer.address}
+        </p>
+      )}
+    </motion.div>
+  );
+}
+
+function AddCustomerDialog({
+  open,
+  onClose,
+}: { open: boolean; onClose: () => void }) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [serviceType, setServiceType] = useState<ServiceType | "">("");
+
+  const addCustomer = useAddCustomer();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !phone.trim() || !serviceType) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    try {
+      await addCustomer.mutateAsync({
+        name: name.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        serviceType: serviceType as ServiceType,
+      });
+      toast.success("Customer added successfully!");
+      setName("");
+      setPhone("");
+      setAddress("");
+      setServiceType("");
+      onClose();
+    } catch {
+      toast.error("Failed to add customer");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md" data-ocid="admin.dialog">
+        <DialogHeader>
+          <DialogTitle className="font-display font-bold">
+            Add New Customer
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-sm">Name *</Label>
+            <Input
+              placeholder="Customer full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-ocid="customer.name_input"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm">Phone *</Label>
+            <Input
+              type="tel"
+              placeholder="Phone number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              data-ocid="customer.phone_input"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm">Address</Label>
+            <Input
+              placeholder="Customer address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm">Service Type *</Label>
+            <Select
+              value={serviceType}
+              onValueChange={(v) => setServiceType(v as ServiceType)}
+            >
+              <SelectTrigger data-ocid="customer.service_type_select">
+                <SelectValue placeholder="Select service type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ServiceType.cctv}>
+                  <span className="flex items-center gap-2">
+                    <Camera className="w-4 h-4" />
+                    CCTV
+                  </span>
+                </SelectItem>
+                <SelectItem value={ServiceType.computer}>
+                  <span className="flex items-center gap-2">
+                    <Cpu className="w-4 h-4" />
+                    Computer
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              data-ocid="admin.cancel_button"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={addCustomer.isPending}
+              className="gap-2"
+              data-ocid="admin.confirm_button"
+            >
+              {addCustomer.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Add Customer
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
