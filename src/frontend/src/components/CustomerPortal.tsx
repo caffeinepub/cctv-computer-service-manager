@@ -105,6 +105,18 @@ export default function CustomerPortal({ onBack }: CustomerPortalProps) {
       });
       setSubmittedServiceId(result);
       toast.success("Service request submitted successfully!");
+
+      // Send WhatsApp notification to admin
+      const serviceLabel =
+        serviceType === ServiceType.cctv
+          ? "CCTV Sales & Service"
+          : "Computer Sales & Service";
+      const serviceId = `KIT-${String(result).padStart(4, "0")}`;
+      const waMsg = encodeURIComponent(
+        `🔔 *New Service Request - ${serviceId}*\n\n👤 *Customer:* ${name.trim()}\n📞 *Phone:* ${phone.trim()}\n🛠 *Service:* ${serviceLabel}\n📝 *Problem:* ${problem.trim()}\n\nPlease login to admin dashboard to respond.`,
+      );
+      window.open(`https://wa.me/917373713213?text=${waMsg}`, "_blank");
+
       setSubmitted(true);
       setActiveTrackPhone(phone.trim());
       setTrackPhone(phone.trim());

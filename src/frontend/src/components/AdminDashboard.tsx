@@ -741,7 +741,7 @@ function RequestsSection() {
           [
             {
               value: "all",
-              label: "அனைத்தும்",
+              label: "All",
               labelEn: "All",
               color: "border-border text-muted-foreground",
             },
@@ -1180,7 +1180,7 @@ function EnquiriesSection() {
           [
             {
               value: "all",
-              label: "அனைத்தும்",
+              label: "All",
               color: "border-border text-muted-foreground",
             },
             {

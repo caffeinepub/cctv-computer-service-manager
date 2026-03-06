@@ -49,6 +49,7 @@ const staggerContainer = {
 
 interface Product {
   icon: React.ReactNode;
+  image?: string;
   name: string;
   description: string;
   price: string;
@@ -58,6 +59,7 @@ interface Product {
 const cctvProducts: Product[] = [
   {
     icon: <Shield className="w-5 h-5" />,
+    image: "/assets/uploads/WhatsApp-Image-2026-03-06-at-8.25.11-PM-1.jpeg",
     name: "HD Bullet Camera",
     description: "1080p & 4K outdoor surveillance, IR night vision up to 30m",
     price: "₹1,500 – ₹4,500",
@@ -65,6 +67,7 @@ const cctvProducts: Product[] = [
   },
   {
     icon: <Eye className="w-5 h-5" />,
+    image: "/assets/uploads/WhatsApp-Image-2026-03-06-at-8.25.11-PM-1.jpeg",
     name: "Dome Camera",
     description: "Indoor ceiling mount, 2MP-8MP, wide-angle 110°",
     price: "₹1,200 – ₹3,500",
@@ -72,6 +75,7 @@ const cctvProducts: Product[] = [
   },
   {
     icon: <Server className="w-5 h-5" />,
+    image: "/assets/uploads/WhatsApp-Image-2026-03-06-at-8.25.11-PM-1.jpeg",
     name: "DVR / NVR System",
     description: "4/8/16 channel recording systems with remote viewing",
     price: "₹4,000 – ₹15,000",
@@ -79,6 +83,7 @@ const cctvProducts: Product[] = [
   },
   {
     icon: <Wifi className="w-5 h-5" />,
+    image: "/assets/uploads/WhatsApp-Image-2026-03-06-at-8.25.11-PM-1.jpeg",
     name: "IP Camera System",
     description: "PoE network cameras, cloud storage ready",
     price: "₹3,000 – ₹10,000",
@@ -89,6 +94,7 @@ const cctvProducts: Product[] = [
 const computerProducts: Product[] = [
   {
     icon: <Monitor className="w-5 h-5" />,
+    image: "/assets/uploads/WhatsApp-Image-2026-03-06-at-8.25.11-PM-1-2.jpeg",
     name: "Desktop PC",
     description: "Assembled & branded desktops for home & office use",
     price: "₹18,000 – ₹55,000",
@@ -96,6 +102,7 @@ const computerProducts: Product[] = [
   },
   {
     icon: <Laptop className="w-5 h-5" />,
+    image: "/assets/uploads/WhatsApp-Image-2026-03-06-at-8.25.11-PM-1-2.jpeg",
     name: "Laptop",
     description: "Sales, repair & upgrade service for all brands",
     price: "₹20,000 – ₹80,000",
@@ -103,6 +110,7 @@ const computerProducts: Product[] = [
   },
   {
     icon: <Network className="w-5 h-5" />,
+    image: "/assets/uploads/WhatsApp-Image-2026-03-06-at-8.25.11-PM-1-2.jpeg",
     name: "Networking",
     description: "Routers, switches, LAN/WiFi setup for offices",
     price: "₹1,500 – ₹8,000",
@@ -110,6 +118,7 @@ const computerProducts: Product[] = [
   },
   {
     icon: <Zap className="w-5 h-5" />,
+    image: "/assets/uploads/WhatsApp-Image-2026-03-06-at-8.25.11-PM-1-2.jpeg",
     name: "UPS & Accessories",
     description: "Power backup, keyboard, mouse, cables",
     price: "₹800 – ₹5,000",
@@ -182,7 +191,7 @@ function EnquiryModal({
       ? `Product Enquiry: ${productInterest} - ${message}`
       : `Product Enquiry: ${productInterest}`;
     try {
-      await submitMutation.mutateAsync({
+      const result = await submitMutation.mutateAsync({
         customerName: name.trim(),
         phone: phone.trim(),
         serviceType:
@@ -192,6 +201,19 @@ function EnquiryModal({
         problemDescription: description,
       });
       toast.success("Enquiry submitted! We'll contact you soon.");
+
+      // Send WhatsApp notification to admin
+      const serviceId = `KIT-${String(result).padStart(4, "0")}`;
+      const categoryLabel =
+        product?.category === "computer" ? "Computer" : "CCTV";
+      const msgNote = message.trim()
+        ? `💬 *Message:* ${message.trim()}\n\n`
+        : "\n";
+      const waMsg = encodeURIComponent(
+        `🔔 *New Product Enquiry - ${serviceId}*\n\n👤 *Customer:* ${name.trim()}\n📞 *Phone:* ${phone.trim()}\n📦 *Product:* ${productInterest} (${categoryLabel})\n${msgNote}Please login to admin dashboard to respond.`,
+      );
+      window.open(`https://wa.me/917373713213?text=${waMsg}`, "_blank");
+
       onClose();
       setName("");
       setPhone("");
@@ -310,50 +332,65 @@ function ProductCard({
   return (
     <motion.div
       variants={fadeUp}
-      className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3 hover:shadow-elevated transition-all duration-300"
+      className="rounded-xl border border-border bg-card flex flex-col overflow-hidden hover:shadow-elevated transition-all duration-300 isolate"
       style={{
         borderColor: `oklch(0.88 0.04 ${hue})`,
       }}
     >
-      <div className="flex items-start gap-3">
+      {/* Product Image */}
+      {product.image && (
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{
-            background: `oklch(0.92 0.07 ${hue} / 0.7)`,
-            color: `oklch(0.4 0.15 ${hue})`,
-          }}
+          className="w-full h-40 overflow-hidden flex-shrink-0"
+          style={{ background: `oklch(0.95 0.03 ${hue} / 0.5)` }}
         >
-          {product.icon}
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm text-foreground leading-tight">
-            {product.name}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            {product.description}
-          </p>
+      )}
+      <div className="p-4 flex flex-col gap-3 flex-1">
+        <div className="flex items-start gap-2">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+            style={{
+              background: `oklch(0.92 0.07 ${hue} / 0.7)`,
+              color: `oklch(0.4 0.15 ${hue})`,
+            }}
+          >
+            {product.icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-foreground leading-tight">
+              {product.name}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              {product.description}
+            </p>
+          </div>
         </div>
-      </div>
-      <div className="flex items-center justify-between mt-auto">
-        <span
-          className="text-xs font-semibold"
-          style={{ color: `oklch(0.45 0.15 ${hue})` }}
-        >
-          {product.price}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs px-3"
-          onClick={() => onEnquire(product)}
-          style={{
-            borderColor: `oklch(0.78 0.1 ${hue})`,
-            color: `oklch(0.45 0.15 ${hue})`,
-          }}
-          data-ocid="products.enquiry.open_modal_button"
-        >
-          Enquire Now
-        </Button>
+        <div className="flex items-center justify-between mt-auto">
+          <span
+            className="text-xs font-semibold"
+            style={{ color: `oklch(0.45 0.15 ${hue})` }}
+          >
+            {product.price}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs px-3"
+            onClick={() => onEnquire(product)}
+            style={{
+              borderColor: `oklch(0.78 0.1 ${hue})`,
+              color: `oklch(0.45 0.15 ${hue})`,
+            }}
+            data-ocid="products.enquiry.open_modal_button"
+          >
+            Enquire Now
+          </Button>
+        </div>
       </div>
     </motion.div>
   );
