@@ -227,7 +227,7 @@ export default function CustomerPortal({ onBack }: CustomerPortalProps) {
                     >
                       <SelectValue placeholder="Select service type" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper">
                       <SelectItem value={ServiceType.cctv}>
                         <span className="flex items-center gap-2">
                           <Camera className="w-4 h-4" />

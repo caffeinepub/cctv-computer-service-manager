@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft,
@@ -727,7 +727,7 @@ function RequestsSection() {
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper">
             <SelectItem value="all">All Services</SelectItem>
             <SelectItem value={ServiceType.cctv}>CCTV Only</SelectItem>
             <SelectItem value={ServiceType.computer}>Computer Only</SelectItem>
@@ -742,29 +742,41 @@ function RequestsSection() {
             {
               value: "all",
               label: "All",
-              labelEn: "All",
-              color: "border-border text-muted-foreground",
+              activeStyle: {
+                borderColor: "oklch(0.62 0.17 220)",
+                color: "oklch(0.35 0.15 220)",
+                background: "oklch(0.92 0.06 220 / 0.3)",
+              },
             },
             {
               value: Status.pending,
               label: "Pending",
-              labelEn: "Pending",
-              color: "border-yellow-400 text-yellow-700 bg-yellow-50",
+              activeStyle: {
+                borderColor: "oklch(0.78 0.16 75)",
+                color: "oklch(0.42 0.14 65)",
+                background: "oklch(0.96 0.06 75 / 0.6)",
+              },
             },
             {
               value: Status.inProgress,
               label: "Open",
-              labelEn: "Open",
-              color: "border-blue-400 text-blue-700 bg-blue-50",
+              activeStyle: {
+                borderColor: "oklch(0.62 0.17 220)",
+                color: "oklch(0.35 0.15 220)",
+                background: "oklch(0.92 0.06 220 / 0.5)",
+              },
             },
             {
               value: Status.completed,
               label: "Closed",
-              labelEn: "Closed",
-              color: "border-green-400 text-green-700 bg-green-50",
+              activeStyle: {
+                borderColor: "oklch(0.72 0.16 148)",
+                color: "oklch(0.38 0.13 148)",
+                background: "oklch(0.92 0.06 148 / 0.5)",
+              },
             },
           ] as const
-        ).map(({ value, label, color }) => {
+        ).map(({ value, label, activeStyle }) => {
           const count =
             value === "all"
               ? serviceCalls.length
@@ -775,16 +787,30 @@ function RequestsSection() {
               key={value}
               type="button"
               onClick={() => setStatusFilter(value as FilterStatus)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all ${
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all"
+              style={
                 isActive
-                  ? `${color} shadow-sm scale-105`
-                  : "border-border text-muted-foreground bg-background hover:bg-accent"
-              }`}
+                  ? {
+                      ...activeStyle,
+                      transform: "scale(1.05)",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    }
+                  : {
+                      borderColor: "oklch(0.88 0.015 240)",
+                      color: "oklch(0.52 0.02 240)",
+                      background: "oklch(0.97 0.008 240)",
+                    }
+              }
               data-ocid="admin.filter.tab"
             >
               {label}
               <span
-                className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold ${isActive ? "bg-white/60" : "bg-muted"}`}
+                className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold"
+                style={{
+                  background: isActive
+                    ? "oklch(1 0 0 / 0.6)"
+                    : "oklch(0.94 0.01 240)",
+                }}
               >
                 {count}
               </span>
@@ -961,7 +987,7 @@ function RequestsSection() {
                             >
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent position="popper">
                               <SelectItem value={Status.pending}>
                                 Pending
                               </SelectItem>
@@ -1181,25 +1207,41 @@ function EnquiriesSection() {
             {
               value: "all",
               label: "All",
-              color: "border-border text-muted-foreground",
+              activeStyle: {
+                borderColor: "oklch(0.62 0.17 220)",
+                color: "oklch(0.35 0.15 220)",
+                background: "oklch(0.92 0.06 220 / 0.3)",
+              },
             },
             {
               value: Status.pending,
               label: "Pending",
-              color: "border-yellow-400 text-yellow-700 bg-yellow-50",
+              activeStyle: {
+                borderColor: "oklch(0.78 0.16 75)",
+                color: "oklch(0.42 0.14 65)",
+                background: "oklch(0.96 0.06 75 / 0.6)",
+              },
             },
             {
               value: Status.inProgress,
               label: "Contacted",
-              color: "border-blue-400 text-blue-700 bg-blue-50",
+              activeStyle: {
+                borderColor: "oklch(0.62 0.17 220)",
+                color: "oklch(0.35 0.15 220)",
+                background: "oklch(0.92 0.06 220 / 0.5)",
+              },
             },
             {
               value: Status.completed,
               label: "Closed",
-              color: "border-green-400 text-green-700 bg-green-50",
+              activeStyle: {
+                borderColor: "oklch(0.72 0.16 148)",
+                color: "oklch(0.38 0.13 148)",
+                background: "oklch(0.92 0.06 148 / 0.5)",
+              },
             },
           ] as const
-        ).map(({ value, label, color }) => {
+        ).map(({ value, label, activeStyle }) => {
           const count =
             value === "all"
               ? allEnquiries.length
@@ -1210,16 +1252,30 @@ function EnquiriesSection() {
               key={value}
               type="button"
               onClick={() => setStatusFilter(value as FilterStatus)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all ${
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all"
+              style={
                 isActive
-                  ? `${color} shadow-sm scale-105`
-                  : "border-border text-muted-foreground bg-background hover:bg-accent"
-              }`}
+                  ? {
+                      ...activeStyle,
+                      transform: "scale(1.05)",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    }
+                  : {
+                      borderColor: "oklch(0.88 0.015 240)",
+                      color: "oklch(0.52 0.02 240)",
+                      background: "oklch(0.97 0.008 240)",
+                    }
+              }
               data-ocid="admin.enquiries.filter.tab"
             >
               {label}
               <span
-                className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold ${isActive ? "bg-white/60" : "bg-muted"}`}
+                className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold"
+                style={{
+                  background: isActive
+                    ? "oklch(1 0 0 / 0.6)"
+                    : "oklch(0.94 0.01 240)",
+                }}
               >
                 {count}
               </span>
@@ -1826,7 +1882,7 @@ function AddCustomerDialog({
               <SelectTrigger data-ocid="customer.service_type_select">
                 <SelectValue placeholder="Select service type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper">
                 <SelectItem value={ServiceType.cctv}>
                   <span className="flex items-center gap-2">
                     <Camera className="w-4 h-4" />
