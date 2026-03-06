@@ -40,10 +40,15 @@ export function useAllServiceRequests() {
     queryKey: ["allServiceRequests"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getAllServiceRequests();
+      try {
+        return await actor.getAllServiceRequests();
+      } catch {
+        return [];
+      }
     },
     enabled: !!actor && !isFetching,
     refetchInterval: 15000,
+    retry: false,
   });
 }
 
@@ -66,10 +71,15 @@ export function useNewRequestsCount() {
     queryKey: ["newRequestsCount"],
     queryFn: async () => {
       if (!actor) return BigInt(0);
-      return actor.getNewRequestsCount();
+      try {
+        return await actor.getNewRequestsCount();
+      } catch {
+        return BigInt(0);
+      }
     },
     enabled: !!actor && !isFetching,
     refetchInterval: 10000,
+    retry: false,
   });
 }
 
@@ -79,10 +89,15 @@ export function useUnreadCount() {
     queryKey: ["unreadCount"],
     queryFn: async () => {
       if (!actor) return BigInt(0);
-      return actor.getUnreadServiceRequestsCount();
+      try {
+        return await actor.getUnreadServiceRequestsCount();
+      } catch {
+        return BigInt(0);
+      }
     },
     enabled: !!actor && !isFetching,
     refetchInterval: 10000,
+    retry: false,
   });
 }
 
@@ -92,9 +107,14 @@ export function useCustomers() {
     queryKey: ["customers"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getCustomers();
+      try {
+        return await actor.getCustomers();
+      } catch {
+        return [];
+      }
     },
     enabled: !!actor && !isFetching,
+    retry: false,
   });
 }
 

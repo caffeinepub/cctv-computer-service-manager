@@ -21,7 +21,6 @@ import {
   Loader2,
   Search,
   Send,
-  Shield,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -131,10 +130,11 @@ export default function CustomerPortal({ onBack }: CustomerPortalProps) {
           </button>
           <div className="w-px h-5 bg-border" />
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-primary" />
-            <span className="font-display font-semibold text-base text-foreground">
-              KALAI INFO TECH
-            </span>
+            <img
+              src="/assets/uploads/kalai-logo-2.jpeg"
+              alt="KALAI INFO TECH"
+              className="h-8 w-auto object-contain"
+            />
           </div>
         </div>
       </header>

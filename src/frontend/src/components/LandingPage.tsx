@@ -1,13 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  Camera,
-  ChevronRight,
-  Cpu,
-  Monitor,
-  Phone,
-  Shield,
-  Wrench,
-} from "lucide-react";
+import { Camera, ChevronRight, Cpu, Phone, Shield, Wrench } from "lucide-react";
 import { motion } from "motion/react";
 import type { AppView } from "../App";
 
@@ -32,12 +24,11 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
       <header className="relative z-10 border-b border-border/60 bg-card/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center">
-              <Shield className="w-4 h-4 text-primary" />
-            </div>
-            <span className="font-display font-bold text-lg tracking-tight text-foreground">
-              KALAI INFO TECH
-            </span>
+            <img
+              src="/assets/uploads/kalai-logo-2.jpeg"
+              alt="KALAI INFO TECH"
+              className="h-10 w-auto object-contain"
+            />
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Phone className="w-3.5 h-3.5" />
@@ -49,6 +40,13 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
       {/* Hero */}
       <main>
         <section className="relative py-20 md:py-32 bg-grid">
+          {/* Background logo watermark */}
+          <img
+            src="/assets/uploads/kalai-logo-2.jpeg"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-contain opacity-[0.04] pointer-events-none select-none"
+          />
           {/* Background gradient orbs */}
           <div
             className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none"
@@ -66,6 +64,18 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
               initial="hidden"
               animate="visible"
             >
+              {/* Center logo */}
+              <motion.div
+                variants={fadeUp}
+                className="mb-6 flex justify-center"
+              >
+                <img
+                  src="/assets/uploads/kalai-logo-2.jpeg"
+                  alt="KALAI INFO TECH"
+                  className="h-24 w-auto object-contain drop-shadow-md"
+                />
+              </motion.div>
+
               <motion.div variants={fadeUp} className="mb-6">
                 <span
                   className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border"
@@ -87,7 +97,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                 variants={fadeUp}
                 className="font-display text-4xl md:text-6xl font-bold tracking-tight text-foreground mb-6 text-balance"
               >
-                Professional Tech
+                Kalai Info Tech
                 <span
                   className="block"
                   style={{ color: "oklch(0.55 0.18 220)" }}

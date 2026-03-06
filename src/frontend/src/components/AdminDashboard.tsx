@@ -26,9 +26,11 @@ import {
   ChevronUp,
   ClipboardList,
   Cpu,
+  Fingerprint,
   Loader2,
   LogIn,
   LogOut,
+  MessageCircle,
   Search,
   Send,
   Shield,
@@ -36,10 +38,11 @@ import {
   Users,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ServiceType, Status } from "../backend.d";
 import type { Customer, ServiceRequest } from "../backend.d";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useAddCustomer,
   useAllServiceRequests,
@@ -74,19 +77,39 @@ const ADMIN_PASSWORD = "kalai@2024";
 
 export default function AdminDashboard({ onBack }: AdminDashboardProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [passwordVerified, setPasswordVerified] = useState(false);
+  const { identity, clear } = useInternetIdentity();
   const { data: newCount } = useNewRequestsCount();
   const notificationCount = newCount ? Number(newCount) : 0;
 
-  if (!isLoggedIn) {
+  const handleLogout = () => {
+    clear();
+    setPasswordVerified(false);
+    setIsLoggedIn(false);
+  };
+
+  if (!passwordVerified) {
     return (
-      <LoginView onBack={onBack} onLoginSuccess={() => setIsLoggedIn(true)} />
+      <LoginView
+        onBack={onBack}
+        onLoginSuccess={() => setPasswordVerified(true)}
+      />
+    );
+  }
+
+  if (!identity || !isLoggedIn) {
+    return (
+      <IILoginView
+        onBack={() => setPasswordVerified(false)}
+        onLoginSuccess={() => setIsLoggedIn(true)}
+      />
     );
   }
 
   return (
     <AdminView
       onBack={onBack}
-      onLogout={() => setIsLoggedIn(false)}
+      onLogout={handleLogout}
       notificationCount={notificationCount}
     />
   );
@@ -131,7 +154,11 @@ function LoginView({
           </button>
           <div className="w-px h-5 bg-border" />
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-primary" />
+            <img
+              src="/assets/uploads/kalai-logo-2.jpeg"
+              alt="KALAI INFO TECH"
+              className="h-7 w-auto object-contain"
+            />
             <span className="font-display font-semibold text-base">
               Admin Login
             </span>
@@ -145,16 +172,42 @@ function LoginView({
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl border border-border bg-card p-8 shadow-card"
         >
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
-            style={{
-              background: "oklch(0.92 0.06 220 / 0.6)",
-              border: "1px solid oklch(0.8 0.1 220)",
-            }}
-          >
-            <Shield
-              className="w-7 h-7"
-              style={{ color: "oklch(0.45 0.15 220)" }}
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="flex items-center gap-1.5">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                style={{
+                  background: "oklch(0.62 0.17 220)",
+                  color: "white",
+                }}
+              >
+                1
+              </div>
+              <span
+                className="text-xs font-medium"
+                style={{ color: "oklch(0.45 0.15 220)" }}
+              >
+                Password
+              </span>
+            </div>
+            <div
+              className="flex-1 h-0.5 max-w-[40px] rounded"
+              style={{ background: "oklch(0.88 0.04 220)" }}
+            />
+            <div className="flex items-center gap-1.5">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold bg-muted text-muted-foreground">
+                2
+              </div>
+              <span className="text-xs text-muted-foreground">Identity</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center mb-6">
+            <img
+              src="/assets/uploads/kalai-logo-2.jpeg"
+              alt="KALAI INFO TECH"
+              className="h-16 w-auto object-contain"
             />
           </div>
           <h1 className="font-display font-bold text-2xl text-foreground mb-2 text-center">
@@ -229,6 +282,153 @@ function LoginView({
   );
 }
 
+function IILoginView({
+  onBack,
+  onLoginSuccess,
+}: {
+  onBack: () => void;
+  onLoginSuccess: () => void;
+}) {
+  const { login, identity, isLoggingIn, isLoginError } = useInternetIdentity();
+
+  // When II identity becomes available, automatically proceed
+  useEffect(() => {
+    if (identity) {
+      onLoginSuccess();
+    }
+  }, [identity, onLoginSuccess]);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 border-b border-border/60 bg-card/90 backdrop-blur-sm">
+        <div className="container mx-auto px-4 h-14 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-border" />
+          <div className="flex items-center gap-2">
+            <img
+              src="/assets/uploads/kalai-logo-2.jpeg"
+              alt="KALAI INFO TECH"
+              className="h-7 w-auto object-contain"
+            />
+            <span className="font-display font-semibold text-base">
+              Admin Login
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-16 max-w-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-border bg-card p-8 shadow-card"
+        >
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="flex items-center gap-1.5">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                style={{
+                  background: "oklch(0.55 0.15 148)",
+                  color: "white",
+                }}
+              >
+                ✓
+              </div>
+              <span className="text-xs text-muted-foreground">Password</span>
+            </div>
+            <div
+              className="flex-1 h-0.5 max-w-[40px] rounded"
+              style={{ background: "oklch(0.62 0.17 220)" }}
+            />
+            <div className="flex items-center gap-1.5">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                style={{
+                  background: "oklch(0.62 0.17 220)",
+                  color: "white",
+                }}
+              >
+                2
+              </div>
+              <span
+                className="text-xs font-medium"
+                style={{ color: "oklch(0.45 0.15 220)" }}
+              >
+                Identity
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-center mb-6">
+            <img
+              src="/assets/uploads/kalai-logo-2.jpeg"
+              alt="KALAI INFO TECH"
+              className="h-16 w-auto object-contain"
+            />
+          </div>
+
+          <h1 className="font-display font-bold text-2xl text-foreground mb-2 text-center">
+            Connect Identity
+          </h1>
+          <p className="text-sm text-muted-foreground mb-6 leading-relaxed text-center">
+            Connect your Internet Identity to securely access admin features.
+            This is a one-time setup.
+          </p>
+
+          {isLoginError && (
+            <div
+              className="rounded-lg p-3 mb-4 text-sm text-center font-medium"
+              style={{
+                background: "oklch(0.95 0.04 25 / 0.5)",
+                color: "oklch(0.45 0.18 25)",
+                border: "1px solid oklch(0.85 0.1 25)",
+              }}
+              data-ocid="admin.error_state"
+            >
+              Connection failed. Please try again.
+            </div>
+          )}
+
+          <Button
+            onClick={login}
+            className="w-full gap-2 font-semibold"
+            disabled={isLoggingIn}
+            data-ocid="admin.ii_connect_button"
+          >
+            {isLoggingIn ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <Fingerprint className="w-4 h-4" />
+                Connect with Internet Identity
+              </>
+            )}
+          </Button>
+
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-full mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors py-1.5"
+            data-ocid="admin.back_button"
+          >
+            ← Back to password
+          </button>
+        </motion.div>
+      </main>
+    </div>
+  );
+}
+
 function AdminView({
   onBack,
   onLogout,
@@ -258,7 +458,11 @@ function AdminView({
             </button>
             <div className="w-px h-5 bg-border" />
             <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-primary" />
+              <img
+                src="/assets/uploads/kalai-logo-2.jpeg"
+                alt="KALAI INFO TECH"
+                className="h-7 w-auto object-contain"
+              />
               <span className="font-display font-semibold text-base">
                 Admin Dashboard
               </span>
@@ -685,6 +889,20 @@ function RequestsSection() {
                             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                           )}
                         </div>
+
+                        {/* WhatsApp notification button */}
+                        <a
+                          href={`https://wa.me/${req.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                            `வணக்கம் ${req.customerName}! உங்கள் service request #${req.requestId} status update: ${currentStatus === "pending" ? "Pending - பரிசீலனையில் உள்ளது" : currentStatus === "inProgress" ? "In Progress - பணி நடைபெறுகிறது" : "Completed - பணி முடிந்தது"}. நன்றி - KALAI INFO TECH, 7373713213`,
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          data-ocid="admin.request.whatsapp_button"
+                          className="inline-flex items-center gap-2 rounded-md border border-green-300 bg-white px-3 py-1.5 text-sm font-medium text-green-600 hover:bg-green-50 transition-colors"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          Send WhatsApp
+                        </a>
 
                         {/* Existing reply */}
                         {req.adminReply && (
