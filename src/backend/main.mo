@@ -1,15 +1,19 @@
 import Array "mo:core/Array";
-import Iter "mo:core/Iter";
 import Time "mo:core/Time";
 import Text "mo:core/Text";
 import Map "mo:core/Map";
-import List "mo:core/List";
 import Order "mo:core/Order";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+import List "mo:core/List";
+import Iter "mo:core/Iter";
+import Nat "mo:core/Nat";
+import Float "mo:core/Float";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   type ServiceType = {
     #cctv;
@@ -48,9 +52,25 @@ actor {
     phone : Text;
   };
 
+  type Review = {
+    reviewId : Nat;
+    requestId : Nat;
+    customerName : Text;
+    phone : Text;
+    rating : Nat;
+    comment : Text;
+    submittedAt : Int;
+  };
+
   module ServiceRequest {
     public func compare(request1 : ServiceRequest, request2 : ServiceRequest) : Order.Order {
       Nat.compare(request1.requestId, request2.requestId);
+    };
+  };
+
+  module Review {
+    public func compare(review1 : Review, review2 : Review) : Order.Order {
+      Nat.compare(review1.reviewId, review2.reviewId);
     };
   };
 
@@ -62,8 +82,10 @@ actor {
   let userProfiles = Map.empty<Principal, UserProfile>();
   var nextRequestId = 0;
   let serviceRequests = Map.empty<Nat, ServiceRequest>();
-
   var hasNewRequestsCount = false;
+
+  let reviews = Map.empty<Nat, Review>();
+  var nextReviewId = 0;
 
   // User Profile Management
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
@@ -145,13 +167,9 @@ actor {
     switch (serviceRequests.get(requestId)) {
       case (null) { null };
       case (?request) {
-        // Admin can view any request, users can view their own requests by phone
         if (AccessControl.isAdmin(accessControlState, caller)) {
           ?request;
         } else {
-          // For non-admin users, they need to verify ownership through phone number
-          // This is a limitation - we can't directly verify ownership here without phone parameter
-          // So we return the request and let the frontend handle filtering
           ?request;
         };
       };
@@ -166,8 +184,6 @@ actor {
   };
 
   public query ({ caller }) func getCustomerServiceRequests(phone : Text) : async [ServiceRequest] {
-    // Anyone can query by phone number (they need to know the phone number)
-    // This allows customers to view their own requests
     serviceRequests.values().toArray().filter(
       func(request) { request.phone == phone }
     );
@@ -184,8 +200,6 @@ actor {
   };
 
   public query ({ caller }) func getNewRequestsCount() : async Nat {
-    // This appears to be for customers to check if they have new replies
-    // Allow any authenticated user to check
     let unreadRequests = serviceRequests.values().toArray().filter(
       func(request) { request.hasNewReply }
     );
@@ -203,7 +217,7 @@ actor {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can reply to service requests");
     };
-    
+
     let request = findServiceRequest(requestId);
 
     let updatedRequest : ServiceRequest = {
@@ -219,7 +233,7 @@ actor {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can update service request status");
     };
-    
+
     let request = findServiceRequest(requestId);
 
     let updatedRequest : ServiceRequest = { request with status };
@@ -227,7 +241,6 @@ actor {
   };
 
   public shared ({ caller }) func markRequestAsRead(requestId : Nat, phoneNumber : Text) : async () {
-    // Anyone with the phone number can mark as read (customer ownership verification)
     let request = findServiceRequest(requestId);
 
     if (request.phone != phoneNumber) {
@@ -240,6 +253,71 @@ actor {
       hasNewReply = false;
     };
     serviceRequests.add(requestId, updatedRequest);
+  };
+
+  // Review Feature
+  public shared ({ caller }) func submitReview(requestId : Nat, rating : Nat, comment : Text) : async Nat {
+    if (rating < 1 or rating > 5) {
+      Runtime.trap("Rating must be between 1 and 5");
+    };
+
+    let serviceRequest = switch (serviceRequests.get(requestId)) {
+      case (null) { Runtime.trap("Service request not found") };
+      case (?request) { request };
+    };
+
+    // Check if a review already exists for this request
+    let existingReview = reviews.values().toArray().find(
+      func(review) { review.requestId == requestId }
+    );
+
+    switch (existingReview) {
+      case (?_) { Runtime.trap("A review already exists for this service request") };
+      case (null) { /* Continue */ };
+    };
+
+    let reviewId = nextReviewId;
+    nextReviewId += 1;
+
+    let newReview : Review = {
+      reviewId;
+      requestId;
+      customerName = serviceRequest.customerName;
+      phone = serviceRequest.phone;
+      rating;
+      comment;
+      submittedAt = Time.now();
+    };
+
+    reviews.add(reviewId, newReview);
+    reviewId;
+  };
+
+  public query ({ caller }) func getReviews() : async [Review] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view all reviews");
+    };
+    reviews.values().toArray().sort();
+  };
+
+  public query ({ caller }) func getAverageRating() : async Float {
+    let allReviews = reviews.values().toArray();
+    let reviewCount = allReviews.size();
+
+    if (reviewCount == 0) { return 0.0 };
+
+    var sum : Nat = 0;
+    for (review in allReviews.values()) {
+      sum += review.rating;
+    };
+
+    sum.toFloat() / reviewCount.toFloat();
+  };
+
+  public query ({ caller }) func getReviewByRequestId(requestId : Nat) : async ?Review {
+    reviews.values().toArray().find(
+      func(review) { review.requestId == requestId }
+    );
   };
 
   // Helper Functions

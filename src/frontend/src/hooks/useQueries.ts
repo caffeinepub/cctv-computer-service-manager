@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Customer,
+  Review,
   ServiceRequest,
   ServiceType,
   Status,
@@ -238,5 +239,83 @@ export function useAddCustomer() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
     },
+  });
+}
+
+export function useSubmitReview() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      requestId,
+      rating,
+      comment,
+    }: {
+      requestId: bigint;
+      rating: bigint;
+      comment: string;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.submitReview(requestId, rating, comment);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["customerServiceRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["averageRating"] });
+      queryClient.invalidateQueries({
+        queryKey: ["reviewByRequestId", variables.requestId.toString()],
+      });
+    },
+  });
+}
+
+export function useReviews() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Review[]>({
+    queryKey: ["reviews"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        return await actor.getReviews();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+}
+
+export function useAverageRating() {
+  const { actor, isFetching } = useActor();
+  return useQuery<number>({
+    queryKey: ["averageRating"],
+    queryFn: async () => {
+      if (!actor) return 0;
+      try {
+        return await actor.getAverageRating();
+      } catch {
+        return 0;
+      }
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+}
+
+export function useReviewByRequestId(requestId: bigint | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery<Review | null>({
+    queryKey: ["reviewByRequestId", requestId?.toString() ?? ""],
+    queryFn: async () => {
+      if (!actor || requestId === null) return null;
+      try {
+        return await actor.getReviewByRequestId(requestId);
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!actor && !isFetching && requestId !== null,
+    retry: false,
   });
 }

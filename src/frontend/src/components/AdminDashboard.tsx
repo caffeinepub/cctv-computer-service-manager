@@ -34,6 +34,7 @@ import {
   Search,
   Send,
   Shield,
+  Star,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -49,6 +50,7 @@ import {
   useCustomers,
   useNewRequestsCount,
   useReplyToServiceRequest,
+  useReviews,
   useUpdateServiceRequestStatus,
 } from "../hooks/useQueries";
 import { ServiceTypeBadge, StatusBadge } from "./StatusBadge";
@@ -59,7 +61,7 @@ interface AdminDashboardProps {
 
 type FilterStatus = "all" | Status;
 type FilterService = "all" | ServiceType;
-type AdminSection = "requests" | "customers";
+type AdminSection = "requests" | "customers" | "reviews";
 
 function formatDate(nanoTimestamp: bigint): string {
   const ms = Number(nanoTimestamp) / 1_000_000;
@@ -155,7 +157,7 @@ function LoginView({
           <div className="w-px h-5 bg-border" />
           <div className="flex items-center gap-2">
             <img
-              src="/assets/uploads/kalai-logo-2.jpeg"
+              src="/assets/uploads/cctv-surveillance-security-camera-monitoring-inside-shield-vector-logo-design-template-141930796-copy-1.jpg"
               alt="KALAI INFO TECH"
               className="h-7 w-auto object-contain"
             />
@@ -205,7 +207,7 @@ function LoginView({
 
           <div className="flex justify-center mb-6">
             <img
-              src="/assets/uploads/kalai-logo-2.jpeg"
+              src="/assets/uploads/cctv-surveillance-security-camera-monitoring-inside-shield-vector-logo-design-template-141930796-copy-1.jpg"
               alt="KALAI INFO TECH"
               className="h-16 w-auto object-contain"
             />
@@ -312,7 +314,7 @@ function IILoginView({
           <div className="w-px h-5 bg-border" />
           <div className="flex items-center gap-2">
             <img
-              src="/assets/uploads/kalai-logo-2.jpeg"
+              src="/assets/uploads/cctv-surveillance-security-camera-monitoring-inside-shield-vector-logo-design-template-141930796-copy-1.jpg"
               alt="KALAI INFO TECH"
               className="h-7 w-auto object-contain"
             />
@@ -368,7 +370,7 @@ function IILoginView({
 
           <div className="flex justify-center mb-6">
             <img
-              src="/assets/uploads/kalai-logo-2.jpeg"
+              src="/assets/uploads/cctv-surveillance-security-camera-monitoring-inside-shield-vector-logo-design-template-141930796-copy-1.jpg"
               alt="KALAI INFO TECH"
               className="h-16 w-auto object-contain"
             />
@@ -459,7 +461,7 @@ function AdminView({
             <div className="w-px h-5 bg-border" />
             <div className="flex items-center gap-2">
               <img
-                src="/assets/uploads/kalai-logo-2.jpeg"
+                src="/assets/uploads/cctv-surveillance-security-camera-monitoring-inside-shield-vector-logo-design-template-141930796-copy-1.jpg"
                 alt="KALAI INFO TECH"
                 className="h-7 w-auto object-contain"
               />
@@ -497,11 +499,11 @@ function AdminView({
       {/* Nav tabs */}
       <div className="border-b border-border/50 bg-card/50">
         <div className="container mx-auto px-4">
-          <div className="flex gap-0">
+          <div className="flex gap-0 overflow-x-auto">
             <button
               type="button"
               onClick={() => setSection("requests")}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 section === "requests"
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -514,7 +516,7 @@ function AdminView({
             <button
               type="button"
               onClick={() => setSection("customers")}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 section === "customers"
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -523,6 +525,19 @@ function AdminView({
             >
               <Users className="w-4 h-4" />
               Customers
+            </button>
+            <button
+              type="button"
+              onClick={() => setSection("reviews")}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                section === "reviews"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              data-ocid="admin.filter.tab"
+            >
+              <Star className="w-4 h-4" />
+              Reviews
             </button>
           </div>
         </div>
@@ -540,7 +555,7 @@ function AdminView({
             >
               <RequestsSection />
             </motion.div>
-          ) : (
+          ) : section === "customers" ? (
             <motion.div
               key="customers"
               initial={{ opacity: 0, y: 8 }}
@@ -549,6 +564,16 @@ function AdminView({
               transition={{ duration: 0.2 }}
             >
               <CustomersSection />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="reviews"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ReviewsSection />
             </motion.div>
           )}
         </AnimatePresence>
@@ -972,6 +997,156 @@ function RequestsSection() {
               </motion.div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StarDisplay({ rating }: { rating: number }) {
+  return (
+    <span className="inline-flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span
+          key={i}
+          className="text-base"
+          style={{
+            color: i <= rating ? "oklch(0.78 0.15 85)" : "oklch(0.82 0.03 240)",
+          }}
+        >
+          ★
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function ReviewsSection() {
+  const { data: reviews, isLoading } = useReviews();
+
+  const totalReviews = (reviews ?? []).length;
+  const avgRating =
+    totalReviews > 0
+      ? (reviews ?? []).reduce((sum, r) => sum + Number(r.rating), 0) /
+        totalReviews
+      : 0;
+
+  if (isLoading) {
+    return (
+      <div
+        className="flex items-center justify-center py-16"
+        data-ocid="admin.reviews.loading_state"
+      >
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Loading reviews...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Summary card */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div
+          className="flex-1 rounded-xl border p-5"
+          style={{
+            background: "oklch(0.96 0.04 85 / 0.4)",
+            borderColor: "oklch(0.82 0.1 85)",
+          }}
+          data-ocid="admin.reviews.panel"
+        >
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+            Total Reviews
+          </p>
+          <p
+            className="font-display font-bold text-3xl"
+            style={{ color: "oklch(0.5 0.15 85)" }}
+          >
+            {totalReviews}
+          </p>
+        </div>
+        <div
+          className="flex-1 rounded-xl border p-5"
+          style={{
+            background: "oklch(0.96 0.04 85 / 0.4)",
+            borderColor: "oklch(0.82 0.1 85)",
+          }}
+          data-ocid="admin.reviews.panel"
+        >
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+            Average Rating
+          </p>
+          <div className="flex items-center gap-2">
+            <p
+              className="font-display font-bold text-3xl"
+              style={{ color: "oklch(0.5 0.15 85)" }}
+            >
+              {totalReviews > 0 ? avgRating.toFixed(1) : "—"}
+            </p>
+            {totalReviews > 0 && <StarDisplay rating={Math.round(avgRating)} />}
+          </div>
+        </div>
+      </div>
+
+      {/* Reviews list */}
+      {totalReviews === 0 ? (
+        <div
+          className="rounded-xl border border-border bg-card py-12 text-center"
+          data-ocid="admin.reviews.empty_state"
+        >
+          <Star className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">
+            No reviews yet. Reviews will appear here once customers rate their
+            service.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3" data-ocid="admin.reviews.list">
+          {(reviews ?? []).map((review, idx) => (
+            <motion.div
+              key={review.reviewId.toString()}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.04 }}
+              className="rounded-xl border border-border bg-card p-4 shadow-xs"
+              data-ocid={`admin.reviews.item.${idx + 1}`}
+            >
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div>
+                  <p className="font-semibold text-sm text-foreground">
+                    {review.customerName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {review.phone}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <StarDisplay rating={Number(review.rating)} />
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Request #{review.requestId.toString()}
+                  </p>
+                </div>
+              </div>
+              {review.comment && (
+                <p className="text-sm text-muted-foreground leading-relaxed bg-muted/40 rounded-lg p-2.5">
+                  "{review.comment}"
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                {new Date(
+                  Number(review.submittedAt) / 1_000_000,
+                ).toLocaleString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </motion.div>
+          ))}
         </div>
       )}
     </div>

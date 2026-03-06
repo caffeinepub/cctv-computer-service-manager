@@ -45,12 +45,22 @@ export const Customer = IDL.Record({
   'address' : IDL.Text,
   'phone' : IDL.Text,
 });
+export const Review = IDL.Record({
+  'customerName' : IDL.Text,
+  'requestId' : IDL.Nat,
+  'submittedAt' : IDL.Int,
+  'comment' : IDL.Text,
+  'rating' : IDL.Nat,
+  'phone' : IDL.Text,
+  'reviewId' : IDL.Nat,
+});
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addCustomer' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, ServiceType], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'getAllServiceRequests' : IDL.Func([], [IDL.Vec(ServiceRequest)], ['query']),
+  'getAverageRating' : IDL.Func([], [IDL.Float64], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCustomer' : IDL.Func([IDL.Text], [IDL.Opt(Customer)], ['query']),
@@ -61,6 +71,8 @@ export const idlService = IDL.Service({
     ),
   'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
   'getNewRequestsCount' : IDL.Func([], [IDL.Nat], ['query']),
+  'getReviewByRequestId' : IDL.Func([IDL.Nat], [IDL.Opt(Review)], ['query']),
+  'getReviews' : IDL.Func([], [IDL.Vec(Review)], ['query']),
   'getServiceRequest' : IDL.Func(
       [IDL.Nat],
       [IDL.Opt(ServiceRequest)],
@@ -77,6 +89,7 @@ export const idlService = IDL.Service({
   'markRequestAsRead' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'replyToServiceRequest' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'submitReview' : IDL.Func([IDL.Nat, IDL.Nat, IDL.Text], [IDL.Nat], []),
   'submitServiceRequest' : IDL.Func(
       [IDL.Text, IDL.Text, ServiceType, IDL.Text],
       [IDL.Nat],
@@ -119,6 +132,15 @@ export const idlFactory = ({ IDL }) => {
     'address' : IDL.Text,
     'phone' : IDL.Text,
   });
+  const Review = IDL.Record({
+    'customerName' : IDL.Text,
+    'requestId' : IDL.Nat,
+    'submittedAt' : IDL.Int,
+    'comment' : IDL.Text,
+    'rating' : IDL.Nat,
+    'phone' : IDL.Text,
+    'reviewId' : IDL.Nat,
+  });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -133,6 +155,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(ServiceRequest)],
         ['query'],
       ),
+    'getAverageRating' : IDL.Func([], [IDL.Float64], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCustomer' : IDL.Func([IDL.Text], [IDL.Opt(Customer)], ['query']),
@@ -143,6 +166,8 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
     'getNewRequestsCount' : IDL.Func([], [IDL.Nat], ['query']),
+    'getReviewByRequestId' : IDL.Func([IDL.Nat], [IDL.Opt(Review)], ['query']),
+    'getReviews' : IDL.Func([], [IDL.Vec(Review)], ['query']),
     'getServiceRequest' : IDL.Func(
         [IDL.Nat],
         [IDL.Opt(ServiceRequest)],
@@ -159,6 +184,7 @@ export const idlFactory = ({ IDL }) => {
     'markRequestAsRead' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'replyToServiceRequest' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'submitReview' : IDL.Func([IDL.Nat, IDL.Nat, IDL.Text], [IDL.Nat], []),
     'submitServiceRequest' : IDL.Func(
         [IDL.Text, IDL.Text, ServiceType, IDL.Text],
         [IDL.Nat],

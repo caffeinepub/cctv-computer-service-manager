@@ -112,6 +112,15 @@ export interface UserProfile {
     name: string;
     phone: string;
 }
+export interface Review {
+    customerName: string;
+    requestId: bigint;
+    submittedAt: bigint;
+    comment: string;
+    rating: bigint;
+    phone: string;
+    reviewId: bigint;
+}
 export enum ServiceType {
     cctv = "cctv",
     computer = "computer"
@@ -131,12 +140,15 @@ export interface backendInterface {
     addCustomer(name: string, phone: string, address: string, serviceType: ServiceType): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getAllServiceRequests(): Promise<Array<ServiceRequest>>;
+    getAverageRating(): Promise<number>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCustomer(phone: string): Promise<Customer | null>;
     getCustomerServiceRequests(phone: string): Promise<Array<ServiceRequest>>;
     getCustomers(): Promise<Array<Customer>>;
     getNewRequestsCount(): Promise<bigint>;
+    getReviewByRequestId(requestId: bigint): Promise<Review | null>;
+    getReviews(): Promise<Array<Review>>;
     getServiceRequest(requestId: bigint): Promise<ServiceRequest | null>;
     getUnreadServiceRequestsCount(): Promise<bigint>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
@@ -145,10 +157,11 @@ export interface backendInterface {
     markRequestAsRead(requestId: bigint, phoneNumber: string): Promise<void>;
     replyToServiceRequest(requestId: bigint, reply: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    submitReview(requestId: bigint, rating: bigint, comment: string): Promise<bigint>;
     submitServiceRequest(customerName: string, phone: string, serviceType: ServiceType, problemDescription: string): Promise<bigint>;
     updateServiceRequestStatus(requestId: bigint, status: Status): Promise<void>;
 }
-import type { Customer as _Customer, ServiceRequest as _ServiceRequest, ServiceType as _ServiceType, Status as _Status, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
+import type { Customer as _Customer, Review as _Review, ServiceRequest as _ServiceRequest, ServiceType as _ServiceType, Status as _Status, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -205,6 +218,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getAllServiceRequests();
             return from_candid_vec_n5(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAverageRating(): Promise<number> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAverageRating();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAverageRating();
+            return result;
         }
     }
     async getCallerUserProfile(): Promise<UserProfile | null> {
@@ -291,18 +318,46 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async getServiceRequest(arg0: bigint): Promise<ServiceRequest | null> {
+    async getReviewByRequestId(arg0: bigint): Promise<Review | null> {
         if (this.processError) {
             try {
-                const result = await this.actor.getServiceRequest(arg0);
+                const result = await this.actor.getReviewByRequestId(arg0);
                 return from_candid_opt_n21(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getServiceRequest(arg0);
+            const result = await this.actor.getReviewByRequestId(arg0);
             return from_candid_opt_n21(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getReviews(): Promise<Array<Review>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getReviews();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getReviews();
+            return result;
+        }
+    }
+    async getServiceRequest(arg0: bigint): Promise<ServiceRequest | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getServiceRequest(arg0);
+                return from_candid_opt_n22(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getServiceRequest(arg0);
+            return from_candid_opt_n22(this._uploadFile, this._downloadFile, result);
         }
     }
     async getUnreadServiceRequestsCount(): Promise<bigint> {
@@ -403,6 +458,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async submitReview(arg0: bigint, arg1: bigint, arg2: string): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitReview(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitReview(arg0, arg1, arg2);
+            return result;
+        }
+    }
     async submitServiceRequest(arg0: string, arg1: string, arg2: ServiceType, arg3: string): Promise<bigint> {
         if (this.processError) {
             try {
@@ -420,14 +489,14 @@ export class Backend implements backendInterface {
     async updateServiceRequestStatus(arg0: bigint, arg1: Status): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateServiceRequestStatus(arg0, to_candid_Status_n22(this._uploadFile, this._downloadFile, arg1));
+                const result = await this.actor.updateServiceRequestStatus(arg0, to_candid_Status_n23(this._uploadFile, this._downloadFile, arg1));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateServiceRequestStatus(arg0, to_candid_Status_n22(this._uploadFile, this._downloadFile, arg1));
+            const result = await this.actor.updateServiceRequestStatus(arg0, to_candid_Status_n23(this._uploadFile, this._downloadFile, arg1));
             return result;
         }
     }
@@ -459,7 +528,10 @@ function from_candid_opt_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
 function from_candid_opt_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Customer]): Customer | null {
     return value.length === 0 ? null : from_candid_Customer_n18(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ServiceRequest]): ServiceRequest | null {
+function from_candid_opt_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Review]): Review | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ServiceRequest]): ServiceRequest | null {
     return value.length === 0 ? null : from_candid_ServiceRequest_n6(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_record_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -553,8 +625,8 @@ function from_candid_vec_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Ar
 function to_candid_ServiceType_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: ServiceType): _ServiceType {
     return to_candid_variant_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_Status_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Status): _Status {
-    return to_candid_variant_n23(_uploadFile, _downloadFile, value);
+function to_candid_Status_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Status): _Status {
+    return to_candid_variant_n24(_uploadFile, _downloadFile, value);
 }
 function to_candid_UserRole_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n4(_uploadFile, _downloadFile, value);
@@ -570,7 +642,7 @@ function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         computer: null
     } : value;
 }
-function to_candid_variant_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Status): {
+function to_candid_variant_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Status): {
     pending: null;
 } | {
     completed: null;

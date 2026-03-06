@@ -30,6 +30,15 @@ export interface UserProfile {
     name: string;
     phone: string;
 }
+export interface Review {
+    customerName: string;
+    requestId: bigint;
+    submittedAt: bigint;
+    comment: string;
+    rating: bigint;
+    phone: string;
+    reviewId: bigint;
+}
 export enum ServiceType {
     cctv = "cctv",
     computer = "computer"
@@ -48,12 +57,15 @@ export interface backendInterface {
     addCustomer(name: string, phone: string, address: string, serviceType: ServiceType): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getAllServiceRequests(): Promise<Array<ServiceRequest>>;
+    getAverageRating(): Promise<number>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCustomer(phone: string): Promise<Customer | null>;
     getCustomerServiceRequests(phone: string): Promise<Array<ServiceRequest>>;
     getCustomers(): Promise<Array<Customer>>;
     getNewRequestsCount(): Promise<bigint>;
+    getReviewByRequestId(requestId: bigint): Promise<Review | null>;
+    getReviews(): Promise<Array<Review>>;
     getServiceRequest(requestId: bigint): Promise<ServiceRequest | null>;
     getUnreadServiceRequestsCount(): Promise<bigint>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
@@ -62,6 +74,7 @@ export interface backendInterface {
     markRequestAsRead(requestId: bigint, phoneNumber: string): Promise<void>;
     replyToServiceRequest(requestId: bigint, reply: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    submitReview(requestId: bigint, rating: bigint, comment: string): Promise<bigint>;
     submitServiceRequest(customerName: string, phone: string, serviceType: ServiceType, problemDescription: string): Promise<bigint>;
     updateServiceRequestStatus(requestId: bigint, status: Status): Promise<void>;
 }

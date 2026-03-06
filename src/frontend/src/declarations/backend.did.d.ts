@@ -16,6 +16,15 @@ export interface Customer {
   'address' : string,
   'phone' : string,
 }
+export interface Review {
+  'customerName' : string,
+  'requestId' : bigint,
+  'submittedAt' : bigint,
+  'comment' : string,
+  'rating' : bigint,
+  'phone' : string,
+  'reviewId' : bigint,
+}
 export interface ServiceRequest {
   'customerName' : string,
   'status' : Status,
@@ -43,12 +52,15 @@ export interface _SERVICE {
   'addCustomer' : ActorMethod<[string, string, string, ServiceType], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getAllServiceRequests' : ActorMethod<[], Array<ServiceRequest>>,
+  'getAverageRating' : ActorMethod<[], number>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCustomer' : ActorMethod<[string], [] | [Customer]>,
   'getCustomerServiceRequests' : ActorMethod<[string], Array<ServiceRequest>>,
   'getCustomers' : ActorMethod<[], Array<Customer>>,
   'getNewRequestsCount' : ActorMethod<[], bigint>,
+  'getReviewByRequestId' : ActorMethod<[bigint], [] | [Review]>,
+  'getReviews' : ActorMethod<[], Array<Review>>,
   'getServiceRequest' : ActorMethod<[bigint], [] | [ServiceRequest]>,
   'getUnreadServiceRequestsCount' : ActorMethod<[], bigint>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
@@ -57,6 +69,7 @@ export interface _SERVICE {
   'markRequestAsRead' : ActorMethod<[bigint, string], undefined>,
   'replyToServiceRequest' : ActorMethod<[bigint, string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'submitReview' : ActorMethod<[bigint, bigint, string], bigint>,
   'submitServiceRequest' : ActorMethod<
     [string, string, ServiceType, string],
     bigint

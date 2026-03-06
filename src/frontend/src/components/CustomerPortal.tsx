@@ -21,6 +21,7 @@ import {
   Loader2,
   Search,
   Send,
+  Star,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -31,6 +32,8 @@ import { useActor } from "../hooks/useActor";
 import {
   useCustomerServiceRequests,
   useMarkRequestAsRead,
+  useReviewByRequestId,
+  useSubmitReview,
   useSubmitServiceRequest,
 } from "../hooks/useQueries";
 import { ServiceTypeBadge, StatusBadge } from "./StatusBadge";
@@ -52,6 +55,9 @@ function formatDate(nanoTimestamp: bigint): string {
 
 export default function CustomerPortal({ onBack }: CustomerPortalProps) {
   const [submitted, setSubmitted] = useState(false);
+  const [submittedServiceId, setSubmittedServiceId] = useState<bigint | null>(
+    null,
+  );
 
   // Form state
   const [name, setName] = useState("");
@@ -91,12 +97,13 @@ export default function CustomerPortal({ onBack }: CustomerPortalProps) {
       return;
     }
     try {
-      await submitMutation.mutateAsync({
+      const result = await submitMutation.mutateAsync({
         customerName: name.trim(),
         phone: phone.trim(),
         serviceType: serviceType as ServiceType,
         problemDescription: problem.trim(),
       });
+      setSubmittedServiceId(result);
       toast.success("Service request submitted successfully!");
       setSubmitted(true);
       setActiveTrackPhone(phone.trim());
@@ -131,7 +138,7 @@ export default function CustomerPortal({ onBack }: CustomerPortalProps) {
           <div className="w-px h-5 bg-border" />
           <div className="flex items-center gap-2">
             <img
-              src="/assets/uploads/kalai-logo-2.jpeg"
+              src="/assets/uploads/cctv-surveillance-security-camera-monitoring-inside-shield-vector-logo-design-template-141930796-copy-1.jpg"
               alt="KALAI INFO TECH"
               className="h-8 w-auto object-contain"
             />
@@ -298,6 +305,32 @@ export default function CustomerPortal({ onBack }: CustomerPortalProps) {
                   Your service request has been logged. We'll review it shortly
                   and reply to you.
                 </p>
+                {submittedServiceId !== null && (
+                  <div
+                    className="rounded-lg p-4 mb-4 text-center"
+                    style={{
+                      background: "oklch(0.92 0.07 220 / 0.4)",
+                      border: "1px solid oklch(0.75 0.12 220)",
+                    }}
+                    data-ocid="customer.service_id_panel"
+                  >
+                    <p
+                      className="text-xs font-semibold uppercase tracking-wider mb-1"
+                      style={{ color: "oklch(0.45 0.15 220)" }}
+                    >
+                      Your Service ID
+                    </p>
+                    <p
+                      className="font-display font-bold text-2xl"
+                      style={{ color: "oklch(0.35 0.18 220)" }}
+                    >
+                      KIT-{String(submittedServiceId).padStart(4, "0")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Save this ID to track your request
+                    </p>
+                  </div>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -307,6 +340,7 @@ export default function CustomerPortal({ onBack }: CustomerPortalProps) {
                     setPhone("");
                     setServiceType("");
                     setProblem("");
+                    setSubmittedServiceId(null);
                   }}
                 >
                   Submit Another Request
@@ -351,6 +385,161 @@ export default function CustomerPortal({ onBack }: CustomerPortalProps) {
           {activeTrackPhone && <RequestsList phone={activeTrackPhone} />}
         </section>
       </main>
+    </div>
+  );
+}
+
+// ─── Star Rating Input ────────────────────────────────────────────────────
+
+function StarRatingInput({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <div className="flex gap-1" aria-label="Star rating">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onChange(i)}
+          onMouseEnter={() => setHovered(i)}
+          onMouseLeave={() => setHovered(0)}
+          className="text-2xl transition-transform hover:scale-110 focus:outline-none"
+          style={{
+            color:
+              i <= (hovered || value)
+                ? "oklch(0.78 0.15 85)"
+                : "oklch(0.82 0.03 240)",
+          }}
+          aria-label={`${i} star${i !== 1 ? "s" : ""}`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Review Form ──────────────────────────────────────────────────────────
+
+function ReviewForm({ requestId }: { requestId: bigint }) {
+  const { data: existingReview, isLoading } = useReviewByRequestId(requestId);
+  const submitReview = useSubmitReview();
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground text-sm py-2">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Loading review...
+      </div>
+    );
+  }
+
+  if (existingReview) {
+    return (
+      <div
+        className="rounded-lg p-3"
+        style={{
+          background: "oklch(0.95 0.06 85 / 0.3)",
+          border: "1px solid oklch(0.82 0.1 85)",
+        }}
+        data-ocid="customer.review.success_state"
+      >
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-1"
+          style={{ color: "oklch(0.55 0.14 85)" }}
+        >
+          Your Review
+        </p>
+        <div className="flex items-center gap-1 mb-1">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <span
+              key={i}
+              className="text-lg"
+              style={{
+                color:
+                  i <= Number(existingReview.rating)
+                    ? "oklch(0.78 0.15 85)"
+                    : "oklch(0.82 0.03 240)",
+              }}
+            >
+              ★
+            </span>
+          ))}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Thank you for your review! You rated us{" "}
+          {Number(existingReview.rating)} stars.
+        </p>
+      </div>
+    );
+  }
+
+  const handleSubmit = async () => {
+    if (rating === 0) {
+      toast.error("Please select a star rating");
+      return;
+    }
+    try {
+      await submitReview.mutateAsync({
+        requestId,
+        rating: BigInt(rating),
+        comment: comment.trim(),
+      });
+      toast.success("Thank you for your review!");
+    } catch {
+      toast.error("Failed to submit review. Please try again.");
+    }
+  };
+
+  return (
+    <div
+      className="rounded-lg p-3 space-y-3"
+      style={{
+        background: "oklch(0.96 0.01 240)",
+        border: "1px solid oklch(0.88 0.015 240)",
+      }}
+    >
+      <p
+        className="text-xs font-semibold uppercase tracking-wider"
+        style={{ color: "oklch(0.45 0.08 240)" }}
+      >
+        Leave a Review
+      </p>
+      <StarRatingInput value={rating} onChange={setRating} />
+      <Textarea
+        placeholder="Share your experience (optional)..."
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        rows={2}
+        className="resize-none text-sm"
+        data-ocid="customer.review.textarea"
+      />
+      <Button
+        size="sm"
+        className="gap-2"
+        onClick={handleSubmit}
+        disabled={submitReview.isPending || rating === 0}
+        data-ocid="customer.review.submit_button"
+      >
+        {submitReview.isPending ? (
+          <>
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            Submitting...
+          </>
+        ) : (
+          <>
+            <Star className="w-3.5 h-3.5" />
+            Submit Review
+          </>
+        )}
+      </Button>
     </div>
   );
 }
@@ -563,6 +752,9 @@ function RequestsList({ phone }: { phone: string }) {
                       <p className="text-xs text-muted-foreground italic">
                         No reply yet. We'll respond to you soon.
                       </p>
+                    )}
+                    {req.status === Status.completed && (
+                      <ReviewForm requestId={req.requestId} />
                     )}
                   </div>
                 </motion.div>
