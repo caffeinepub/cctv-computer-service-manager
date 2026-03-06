@@ -11,9 +11,9 @@ import List "mo:core/List";
 import Iter "mo:core/Iter";
 import Nat "mo:core/Nat";
 import Float "mo:core/Float";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   type ServiceType = {
     #cctv;

@@ -31,9 +31,11 @@ import {
   LogIn,
   LogOut,
   MessageCircle,
+  Phone,
   Search,
   Send,
   Shield,
+  ShoppingBag,
   Star,
   UserPlus,
   Users,
@@ -60,8 +62,8 @@ interface AdminDashboardProps {
 }
 
 type FilterStatus = "all" | Status;
-type FilterService = "all" | ServiceType;
-type AdminSection = "requests" | "customers" | "reviews";
+type FilterService = "all" | ServiceType | "enquiry";
+type AdminSection = "requests" | "enquiries" | "customers" | "reviews";
 
 function formatDate(nanoTimestamp: bigint): string {
   const ms = Number(nanoTimestamp) / 1_000_000;
@@ -515,6 +517,19 @@ function AdminView({
             </button>
             <button
               type="button"
+              onClick={() => setSection("enquiries")}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                section === "enquiries"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              data-ocid="admin.filter.tab"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Enquiries
+            </button>
+            <button
+              type="button"
               onClick={() => setSection("customers")}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 section === "customers"
@@ -555,6 +570,16 @@ function AdminView({
             >
               <RequestsSection />
             </motion.div>
+          ) : section === "enquiries" ? (
+            <motion.div
+              key="enquiries"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <EnquiriesSection />
+            </motion.div>
           ) : section === "customers" ? (
             <motion.div
               key="customers"
@@ -593,10 +618,16 @@ function RequestsSection() {
     {},
   );
 
+  const isEnquiry = (r: ServiceRequest) =>
+    r.problemDescription.startsWith("Product Enquiry:");
+
   const replyMutation = useReplyToServiceRequest();
   const statusMutation = useUpdateServiceRequestStatus();
 
-  const filtered = (requests ?? []).filter((r) => {
+  // Only real service calls (exclude enquiries)
+  const serviceCalls = (requests ?? []).filter((r) => !isEnquiry(r));
+
+  const filtered = serviceCalls.filter((r) => {
     if (statusFilter !== "all" && r.status !== statusFilter) return false;
     if (serviceFilter !== "all" && r.serviceType !== serviceFilter)
       return false;
@@ -662,8 +693,20 @@ function RequestsSection() {
 
   return (
     <div>
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="font-display font-bold text-lg text-foreground">
+            Service Calls ({serviceCalls.length})
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            CCTV & Computer service requests
+          </p>
+        </div>
+      </div>
+
+      {/* Search + service type filter */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -679,68 +722,76 @@ function RequestsSection() {
           onValueChange={(v) => setServiceFilter(v as FilterService)}
         >
           <SelectTrigger
-            className="h-9 w-full sm:w-36"
+            className="h-9 w-full sm:w-40"
             data-ocid="admin.request.status_select"
           >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Services</SelectItem>
-            <SelectItem value={ServiceType.cctv}>CCTV</SelectItem>
-            <SelectItem value={ServiceType.computer}>Computer</SelectItem>
+            <SelectItem value={ServiceType.cctv}>CCTV Only</SelectItem>
+            <SelectItem value={ServiceType.computer}>Computer Only</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Status filter tabs */}
-      <Tabs
-        value={statusFilter}
-        onValueChange={(v) => setStatusFilter(v as FilterStatus)}
-        className="mb-4"
-      >
-        <TabsList className="h-9 gap-1">
-          <TabsTrigger
-            value="all"
-            className="text-xs px-3 h-7"
-            data-ocid="admin.filter.tab"
-          >
-            All ({(requests ?? []).length})
-          </TabsTrigger>
-          <TabsTrigger
-            value={Status.pending}
-            className="text-xs px-3 h-7"
-            data-ocid="admin.filter.tab"
-          >
-            Pending (
-            {(requests ?? []).filter((r) => r.status === Status.pending).length}
-            )
-          </TabsTrigger>
-          <TabsTrigger
-            value={Status.inProgress}
-            className="text-xs px-3 h-7"
-            data-ocid="admin.filter.tab"
-          >
-            In Progress (
+      <div className="flex gap-2 mb-5 flex-wrap">
+        {(
+          [
             {
-              (requests ?? []).filter((r) => r.status === Status.inProgress)
-                .length
-            }
-            )
-          </TabsTrigger>
-          <TabsTrigger
-            value={Status.completed}
-            className="text-xs px-3 h-7"
-            data-ocid="admin.filter.tab"
-          >
-            Completed (
+              value: "all",
+              label: "அனைத்தும்",
+              labelEn: "All",
+              color: "border-border text-muted-foreground",
+            },
             {
-              (requests ?? []).filter((r) => r.status === Status.completed)
-                .length
-            }
-            )
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+              value: Status.pending,
+              label: "Pending",
+              labelEn: "Pending",
+              color: "border-yellow-400 text-yellow-700 bg-yellow-50",
+            },
+            {
+              value: Status.inProgress,
+              label: "Open",
+              labelEn: "Open",
+              color: "border-blue-400 text-blue-700 bg-blue-50",
+            },
+            {
+              value: Status.completed,
+              label: "Closed",
+              labelEn: "Closed",
+              color: "border-green-400 text-green-700 bg-green-50",
+            },
+          ] as const
+        ).map(({ value, label, color }) => {
+          const count =
+            value === "all"
+              ? serviceCalls.length
+              : serviceCalls.filter((r) => r.status === value).length;
+          const isActive = statusFilter === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setStatusFilter(value as FilterStatus)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all ${
+                isActive
+                  ? `${color} shadow-sm scale-105`
+                  : "border-border text-muted-foreground bg-background hover:bg-accent"
+              }`}
+              data-ocid="admin.filter.tab"
+            >
+              {label}
+              <span
+                className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold ${isActive ? "bg-white/60" : "bg-muted"}`}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* Requests table/list */}
       {sorted.length === 0 ? (
@@ -785,6 +836,18 @@ function RequestsSection() {
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                     <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                      {isEnquiry(req) && (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                          style={{
+                            background: "oklch(0.92 0.08 60 / 0.3)",
+                            color: "oklch(0.45 0.15 60)",
+                            border: "1px solid oklch(0.78 0.12 60)",
+                          }}
+                        >
+                          ENQUIRY
+                        </span>
+                      )}
                       <ServiceTypeBadge serviceType={req.serviceType} />
                       <StatusBadge status={req.status} />
                       {!req.isRead && (
@@ -990,6 +1053,423 @@ function RequestsSection() {
                             )}
                           </Button>
                         </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EnquiriesSection() {
+  const { data: requests, isLoading } = useAllServiceRequests();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
+  const replyMutation = useReplyToServiceRequest();
+  const statusMutation = useUpdateServiceRequestStatus();
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [expandedId, setExpandedId] = useState<bigint | null>(null);
+
+  const isEnquiry = (r: ServiceRequest) =>
+    r.problemDescription.startsWith("Product Enquiry:");
+
+  const allEnquiries = (requests ?? []).filter(isEnquiry);
+
+  const enquiries = allEnquiries
+    .filter((r) => {
+      if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        r.customerName.toLowerCase().includes(q) ||
+        r.phone.includes(q) ||
+        r.problemDescription.toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => Number(b.submittedAt - a.submittedAt));
+
+  const parseEnquiryDetails = (desc: string) => {
+    // Format: "Product Enquiry: <ProductName> - <Message>" or "Product Enquiry: <ProductName>"
+    const withoutPrefix = desc.replace("Product Enquiry: ", "");
+    const dashIdx = withoutPrefix.indexOf(" - ");
+    if (dashIdx !== -1) {
+      return {
+        product: withoutPrefix.substring(0, dashIdx),
+        message: withoutPrefix.substring(dashIdx + 3),
+      };
+    }
+    return { product: withoutPrefix, message: "" };
+  };
+
+  const handleSendReply = async (req: ServiceRequest) => {
+    const key = req.requestId.toString();
+    const reply = replyText[key]?.trim();
+    if (!reply) {
+      toast.error("Please enter a reply message");
+      return;
+    }
+    try {
+      await replyMutation.mutateAsync({ requestId: req.requestId, reply });
+      toast.success("Reply sent!");
+      setReplyText((prev) => ({ ...prev, [key]: "" }));
+    } catch {
+      toast.error("Failed to send reply");
+    }
+  };
+
+  const handleMarkContacted = async (req: ServiceRequest) => {
+    try {
+      await statusMutation.mutateAsync({
+        requestId: req.requestId,
+        status: Status.inProgress,
+      });
+      toast.success("Marked as Contacted");
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const handleMarkClosed = async (req: ServiceRequest) => {
+    try {
+      await statusMutation.mutateAsync({
+        requestId: req.requestId,
+        status: Status.completed,
+      });
+      toast.success("Enquiry closed");
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div
+        className="flex items-center justify-center py-16"
+        data-ocid="admin.enquiries.loading_state"
+      >
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Loading enquiries...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="font-display font-bold text-lg text-foreground">
+            Customer Enquiries ({allEnquiries.length})
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Product enquiries submitted by customers
+          </p>
+        </div>
+      </div>
+
+      {/* Status filter tabs */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {(
+          [
+            {
+              value: "all",
+              label: "அனைத்தும்",
+              color: "border-border text-muted-foreground",
+            },
+            {
+              value: Status.pending,
+              label: "Pending",
+              color: "border-yellow-400 text-yellow-700 bg-yellow-50",
+            },
+            {
+              value: Status.inProgress,
+              label: "Contacted",
+              color: "border-blue-400 text-blue-700 bg-blue-50",
+            },
+            {
+              value: Status.completed,
+              label: "Closed",
+              color: "border-green-400 text-green-700 bg-green-50",
+            },
+          ] as const
+        ).map(({ value, label, color }) => {
+          const count =
+            value === "all"
+              ? allEnquiries.length
+              : allEnquiries.filter((r) => r.status === value).length;
+          const isActive = statusFilter === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setStatusFilter(value as FilterStatus)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all ${
+                isActive
+                  ? `${color} shadow-sm scale-105`
+                  : "border-border text-muted-foreground bg-background hover:bg-accent"
+              }`}
+              data-ocid="admin.enquiries.filter.tab"
+            >
+              {label}
+              <span
+                className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold ${isActive ? "bg-white/60" : "bg-muted"}`}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by name, phone, or product..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-8 h-9"
+          data-ocid="admin.enquiries.search_input"
+        />
+      </div>
+
+      {enquiries.length === 0 ? (
+        <div
+          className="rounded-xl border border-border bg-card py-14 text-center"
+          data-ocid="admin.enquiries.empty_state"
+        >
+          <MessageCircle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">
+            {searchQuery || statusFilter !== "all"
+              ? "No enquiries match the current filters."
+              : "No product enquiries yet."}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3" data-ocid="admin.enquiries.list">
+          {enquiries.map((req, idx) => {
+            const key = req.requestId.toString();
+            const { product, message } = parseEnquiryDetails(
+              req.problemDescription,
+            );
+            const isExpanded = expandedId === req.requestId;
+            const currentReply = replyText[key] ?? "";
+
+            return (
+              <motion.div
+                key={key}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.04 }}
+                className="rounded-xl border bg-card shadow-xs overflow-hidden"
+                style={{
+                  borderColor:
+                    req.status === Status.pending
+                      ? "oklch(0.78 0.12 60)"
+                      : req.status === Status.inProgress
+                        ? "oklch(0.78 0.12 220)"
+                        : undefined,
+                }}
+                data-ocid={`admin.enquiries.item.${idx + 1}`}
+              >
+                {/* Card header - always visible */}
+                <div className="p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                    {/* Customer avatar */}
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                      style={{ background: "oklch(0.55 0.18 220)" }}
+                    >
+                      {req.customerName.charAt(0).toUpperCase()}
+                    </div>
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <p className="font-semibold text-sm text-foreground">
+                          {req.customerName}
+                        </p>
+                        <StatusBadge status={req.status} />
+                        {!req.isRead && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                            style={{
+                              background: "oklch(0.62 0.17 220 / 0.12)",
+                              color: "oklch(0.45 0.15 220)",
+                              border: "1px solid oklch(0.75 0.1 220)",
+                            }}
+                          >
+                            NEW
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Phone */}
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                        <a
+                          href={`tel:${req.phone}`}
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          {req.phone}
+                        </a>
+                      </div>
+
+                      {/* Product enquired */}
+                      <div
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                        style={{
+                          background: "oklch(0.92 0.07 60 / 0.3)",
+                          color: "oklch(0.4 0.14 60)",
+                          border: "1px solid oklch(0.82 0.1 60)",
+                        }}
+                      >
+                        <ShoppingBag className="w-3 h-3" />
+                        {product}
+                      </div>
+
+                      {message && (
+                        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                          {message}
+                        </p>
+                      )}
+
+                      {/* Submitted time */}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {formatDate(req.submittedAt)}
+                      </p>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex flex-row sm:flex-col gap-2 flex-shrink-0">
+                      {/* WhatsApp */}
+                      <a
+                        href={`https://wa.me/${req.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                          `வணக்கம் ${req.customerName}! நீங்கள் "${product}" பற்றி enquiry செய்தீர்கள். உங்களுக்கு விரைவில் தெரிவிக்கிறோம். நன்றி - KALAI INFO TECH, 7373713213`,
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 transition-colors"
+                        data-ocid="admin.enquiries.whatsapp_button"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        WhatsApp
+                      </a>
+
+                      {req.status === Status.pending && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkContacted(req)}
+                          className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
+                          style={{
+                            borderColor: "oklch(0.75 0.1 220)",
+                            color: "oklch(0.45 0.15 220)",
+                            background: "oklch(0.95 0.04 220 / 0.4)",
+                          }}
+                          data-ocid="admin.enquiries.contact_button"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Contacted
+                        </button>
+                      )}
+
+                      {req.status === Status.inProgress && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkClosed(req)}
+                          className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
+                          style={{
+                            borderColor: "oklch(0.75 0.1 148)",
+                            color: "oklch(0.4 0.13 148)",
+                            background: "oklch(0.95 0.04 148 / 0.4)",
+                          }}
+                          data-ocid="admin.enquiries.close_button"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Close
+                        </button>
+                      )}
+
+                      {/* Expand for reply */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedId(isExpanded ? null : req.requestId)
+                        }
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                        data-ocid="admin.enquiries.reply_toggle_button"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        Reply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reply panel */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 border-t border-border/50 pt-3 space-y-2">
+                        {req.adminReply && (
+                          <div
+                            className="rounded-lg p-2.5 text-sm"
+                            style={{
+                              background: "oklch(0.93 0.05 148 / 0.3)",
+                              border: "1px solid oklch(0.78 0.1 148)",
+                            }}
+                          >
+                            <p className="text-xs font-semibold text-muted-foreground mb-0.5">
+                              Previous reply:
+                            </p>
+                            <p>{req.adminReply}</p>
+                          </div>
+                        )}
+                        <Textarea
+                          placeholder="Type a reply to send to the customer..."
+                          value={currentReply}
+                          onChange={(e) =>
+                            setReplyText((prev) => ({
+                              ...prev,
+                              [key]: e.target.value,
+                            }))
+                          }
+                          rows={2}
+                          className="resize-none text-sm"
+                          data-ocid="admin.enquiries.reply_textarea"
+                        />
+                        <Button
+                          size="sm"
+                          className="gap-2"
+                          onClick={() => handleSendReply(req)}
+                          disabled={replyMutation.isPending}
+                          data-ocid="admin.enquiries.send_reply_button"
+                        >
+                          {replyMutation.isPending ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3.5 h-3.5" />
+                              Send Reply
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </motion.div>
                   )}
