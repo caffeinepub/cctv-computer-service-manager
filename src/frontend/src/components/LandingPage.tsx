@@ -421,9 +421,13 @@ const staticTestimonials = [
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
+type ProductCategory = "all" | "cctv" | "computer";
+
 export default function LandingPage({ onNavigate }: LandingPageProps) {
   const [enquiryProduct, setEnquiryProduct] = useState<Product | null>(null);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
+  const [productCategory, setProductCategory] =
+    useState<ProductCategory>("all");
   const { data: averageRating } = useAverageRating();
 
   const handleEnquire = (product: Product) => {
@@ -558,14 +562,17 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
         </section>
 
         {/* Products Section */}
-        <section className="py-16 border-t border-border/50">
+        <section
+          className="relative py-16 border-t border-border/50"
+          style={{ isolation: "isolate" }}
+        >
           <div className="container mx-auto px-4">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.4 }}
-              className="text-center mb-10"
+              className="text-center mb-8"
             >
               <h2 className="font-display font-bold text-3xl text-foreground mb-2">
                 Our Products
@@ -576,79 +583,136 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
               </p>
             </motion.div>
 
+            {/* Category filter bar */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="flex justify-center gap-2 mb-8"
+            >
+              {(
+                [
+                  { value: "all", label: "All", icon: null },
+                  {
+                    value: "cctv",
+                    label: "CCTV",
+                    icon: <Camera className="w-3.5 h-3.5" />,
+                  },
+                  {
+                    value: "computer",
+                    label: "Computer",
+                    icon: <Cpu className="w-3.5 h-3.5" />,
+                  },
+                ] as const
+              ).map(({ value, label, icon }) => {
+                const isActive = productCategory === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setProductCategory(value)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all duration-200"
+                    style={
+                      isActive
+                        ? {
+                            borderColor: "oklch(0.62 0.17 220)",
+                            color: "oklch(0.35 0.15 220)",
+                            background: "oklch(0.92 0.06 220 / 0.4)",
+                            transform: "scale(1.05)",
+                          }
+                        : {
+                            borderColor: "oklch(0.88 0.015 240)",
+                            color: "oklch(0.52 0.02 240)",
+                            background: "oklch(0.97 0.008 240)",
+                          }
+                    }
+                    data-ocid="products.filter.tab"
+                  >
+                    {icon}
+                    {label}
+                  </button>
+                );
+              })}
+            </motion.div>
+
             {/* CCTV Products */}
-            <div className="mb-10">
-              <motion.div
-                initial={{ opacity: 0, x: -12 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="flex items-center gap-2 mb-4"
-              >
-                <span
-                  className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full"
-                  style={{
-                    background: "oklch(0.92 0.07 170 / 0.6)",
-                    color: "oklch(0.38 0.14 170)",
-                    border: "1px solid oklch(0.78 0.1 170)",
-                  }}
+            {(productCategory === "all" || productCategory === "cctv") && (
+              <div className="mb-10">
+                <motion.div
+                  initial={{ opacity: 0, x: -12 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  className="flex items-center gap-2 mb-4"
                 >
-                  <Camera className="w-3.5 h-3.5" />
-                  CCTV Products
-                </span>
-              </motion.div>
-              <motion.div
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-                variants={staggerContainer}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-60px" }}
-              >
-                {cctvProducts.map((product) => (
-                  <ProductCard
-                    key={product.name}
-                    product={product}
-                    onEnquire={handleEnquire}
-                  />
-                ))}
-              </motion.div>
-            </div>
+                  <span
+                    className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full"
+                    style={{
+                      background: "oklch(0.92 0.07 170 / 0.6)",
+                      color: "oklch(0.38 0.14 170)",
+                      border: "1px solid oklch(0.78 0.1 170)",
+                    }}
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    CCTV Products
+                  </span>
+                </motion.div>
+                <motion.div
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+                  variants={staggerContainer}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-60px" }}
+                >
+                  {cctvProducts.map((product) => (
+                    <ProductCard
+                      key={product.name}
+                      product={product}
+                      onEnquire={handleEnquire}
+                    />
+                  ))}
+                </motion.div>
+              </div>
+            )}
 
             {/* Computer Products */}
-            <div>
-              <motion.div
-                initial={{ opacity: 0, x: -12 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="flex items-center gap-2 mb-4"
-              >
-                <span
-                  className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full"
-                  style={{
-                    background: "oklch(0.92 0.07 220 / 0.6)",
-                    color: "oklch(0.38 0.14 220)",
-                    border: "1px solid oklch(0.78 0.1 220)",
-                  }}
+            {(productCategory === "all" || productCategory === "computer") && (
+              <div>
+                <motion.div
+                  initial={{ opacity: 0, x: -12 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  className="flex items-center gap-2 mb-4"
                 >
-                  <Cpu className="w-3.5 h-3.5" />
-                  Computer Products
-                </span>
-              </motion.div>
-              <motion.div
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-                variants={staggerContainer}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-60px" }}
-              >
-                {computerProducts.map((product) => (
-                  <ProductCard
-                    key={product.name}
-                    product={product}
-                    onEnquire={handleEnquire}
-                  />
-                ))}
-              </motion.div>
-            </div>
+                  <span
+                    className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full"
+                    style={{
+                      background: "oklch(0.92 0.07 220 / 0.6)",
+                      color: "oklch(0.38 0.14 220)",
+                      border: "1px solid oklch(0.78 0.1 220)",
+                    }}
+                  >
+                    <Cpu className="w-3.5 h-3.5" />
+                    Computer Products
+                  </span>
+                </motion.div>
+                <motion.div
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+                  variants={staggerContainer}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-60px" }}
+                >
+                  {computerProducts.map((product) => (
+                    <ProductCard
+                      key={product.name}
+                      product={product}
+                      onEnquire={handleEnquire}
+                    />
+                  ))}
+                </motion.div>
+              </div>
+            )}
           </div>
         </section>
 

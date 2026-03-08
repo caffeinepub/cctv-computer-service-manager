@@ -1,3 +1,4 @@
+// v14 - cache bust fix
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -727,7 +728,7 @@ function RequestsSection() {
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent position="popper">
+          <SelectContent className="z-[200]">
             <SelectItem value="all">All Services</SelectItem>
             <SelectItem value={ServiceType.cctv}>CCTV Only</SelectItem>
             <SelectItem value={ServiceType.computer}>Computer Only</SelectItem>
@@ -987,7 +988,7 @@ function RequestsSection() {
                             >
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent position="popper">
+                            <SelectContent className="z-[200]">
                               <SelectItem value={Status.pending}>
                                 Pending
                               </SelectItem>
@@ -1007,7 +1008,7 @@ function RequestsSection() {
                         {/* WhatsApp notification button */}
                         <a
                           href={`https://wa.me/${req.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                            `வணக்கம் ${req.customerName}! உங்கள் service request #${req.requestId} status update: ${currentStatus === "pending" ? "Pending - பரிசீலனையில் உள்ளது" : currentStatus === "inProgress" ? "In Progress - பணி நடைபெறுகிறது" : "Completed - பணி முடிந்தது"}. நன்றி - KALAI INFO TECH, 7373713213`,
+                            `Hello ${req.customerName}! Your service request #${req.requestId} status update: ${currentStatus === "pending" ? "Pending - Under review" : currentStatus === "inProgress" ? "In Progress - Work is underway" : "Completed - Work is done"}. Thank you - KALAI INFO TECH, 7373713213`,
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -1408,7 +1409,7 @@ function EnquiriesSection() {
                       {/* WhatsApp */}
                       <a
                         href={`https://wa.me/${req.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                          `வணக்கம் ${req.customerName}! நீங்கள் "${product}" பற்றி enquiry செய்தீர்கள். உங்களுக்கு விரைவில் தெரிவிக்கிறோம். நன்றி - KALAI INFO TECH, 7373713213`,
+                          `Hello ${req.customerName}! You enquired about "${product}". We will get back to you shortly. Thank you - KALAI INFO TECH, 7373713213`,
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -1882,7 +1883,7 @@ function AddCustomerDialog({
               <SelectTrigger data-ocid="customer.service_type_select">
                 <SelectValue placeholder="Select service type" />
               </SelectTrigger>
-              <SelectContent position="popper">
+              <SelectContent className="z-[200]">
                 <SelectItem value={ServiceType.cctv}>
                   <span className="flex items-center gap-2">
                     <Camera className="w-4 h-4" />
